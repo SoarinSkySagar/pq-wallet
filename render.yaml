@@ -1,14 +1,28 @@
-# Render Blueprint: the whole Leafguard demo (devnet chain, alt mempool, wallets, explorer) as one web service.
-# New > Blueprint in the Render dashboard, pick this repository. Devnet only, never real funds.
-# Each deploy or restart starts a fresh chain; it is ready about 8 minutes later (a "starting" page until then).
+# Render Blueprint: the Leafguard web service (wallets alice/bob/carol, explorer, gateway) as one Docker service.
+# The chain and the alt mempool run on your own server (./start.sh there); this service talks to them.
+# Render dashboard: New > Blueprint > this repository, then fill in the four values printed on the chain server by
+#   infra/render/export-env.sh <server public IP>
+# Devnet only, never real funds. Guide: infra/render/README.md
 services:
   - type: web
     name: leafguard
     runtime: docker
     dockerfilePath: ./infra/render/Dockerfile
     dockerContext: .
-    plan: standard            # ~1 GB RAM in use (ethrex, Lighthouse, validator, sidecar, 5 Python servers): 2 GB plan
+    plan: starter               # ~300 MB in use; the free plan works too but sleeps when idle and has no disk
     healthCheckPath: /healthz
+    disk:                       # keeps the wallets' keys and accounts across restarts and deploys
+      name: leafguard-devnet
+      mountPath: /app/.devnet
+      sizeGB: 1
     envVars:
-      - key: ALICE_PAIR_CODE  # pairing code for alice's wallet at /wallet and the phone app: 12 characters from
-        sync: false           # A-Z (no I, O) and 2-9, e.g. K7QM-P3XA-WN9D. Leave empty for a random one (in the logs).
+      - key: ETHREX_RPC         # e.g. http://203.0.113.7:32003
+        sync: false
+      - key: SIDECAR_RPC        # e.g. http://203.0.113.7:14337/rpc
+        sync: false
+      - key: DEPLOYMENT_JSON    # one line of JSON with the contract addresses
+        sync: false
+      - key: DEPLOYER_KEY       # throwaway devnet deployer key (funds account setup and test ETH)
+        sync: false
+      - key: ALICE_PAIR_CODE    # optional: 12 characters A-Z (no I/O) and 2-9, e.g. K7QM-P3XA-WN9D
+        sync: false
