@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Leafguard</title>
+  <!-- A shield (2-of-3 guardians) around a leaf whose veins are a hash tree: each vein ends in a one-time leaf;
+       one is marked used. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#14382F"/>
+      <stop offset="1" stop-color="#0B1E1A"/>
+    </linearGradient>
+    <linearGradient id="leaf" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7BE3AA"/>
+      <stop offset="1" stop-color="#3FB27A"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <path d="M256 62 L404 114 V236 C404 336 342 410 256 450 C170 410 108 336 108 236 V114 Z"
+        fill="#ffffff" fill-opacity="0.04" stroke="#E6F4EC" stroke-width="18" stroke-linejoin="round"/>
+  <path d="M256 140 C330 188 346 282 256 396 C166 282 182 188 256 140 Z" fill="url(#leaf)"/>
+  <g stroke="#0E2621" stroke-width="7" stroke-linecap="round" fill="none">
+    <path d="M256 412 V170"/>
+    <path d="M256 336 L214 302 M256 336 L298 302"/>
+    <path d="M256 276 L218 240 M256 276 L294 240"/>
+    <path d="M256 218 L232 192 M256 218 L280 192"/>
+  </g>
+  <g fill="#0E2621">
+    <circle cx="214" cy="302" r="9"/><circle cx="298" cy="302" r="9"/>
+    <circle cx="218" cy="240" r="9"/><circle cx="294" cy="240" r="9"/>
+    <circle cx="232" cy="192" r="8"/>
+  </g>
+  <circle cx="280" cy="192" r="8" fill="#E6F4EC" stroke="#0E2621" stroke-width="4"/>
+</svg>

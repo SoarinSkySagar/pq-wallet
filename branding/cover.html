@@ -1,0 +1,81 @@
+<!doctype html>
+<!-- Cover image source. Render: branding/render.sh (headless Chrome) -> cover-1920x1080.png, cover-1200x630.png -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; }
+  body {
+    font-family: "Inter", "DejaVu Sans", sans-serif; color: #E6F4EC;
+    background:
+      radial-gradient(1200px 800px at 85% 20%, rgba(91, 214, 154, 0.16), transparent 60%),
+      radial-gradient(900px 700px at 10% 100%, rgba(59, 91, 169, 0.18), transparent 60%),
+      linear-gradient(135deg, #0B1E1A 0%, #0D1722 100%);
+    display: grid; grid-template-columns: 1fr 760px; gap: 80px; padding: 110px 120px 90px;
+  }
+  .brand { display: flex; flex-direction: column; justify-content: center; }
+  .row { display: flex; align-items: center; gap: 36px; }
+  .row img { width: 168px; height: 168px; }
+  h1 { font-family: "Inter Display", "Inter", sans-serif; font-weight: 800; font-size: 132px; letter-spacing: -0.035em; line-height: 1; }
+  .tag { font-size: 46px; line-height: 1.25; font-weight: 600; margin-top: 54px; max-width: 900px; }
+  .tag em { font-style: normal; color: #7BE3AA; }
+  .sub { font-size: 30px; line-height: 1.45; color: #A9BDB4; margin-top: 26px; max-width: 880px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 44px; }
+  .chip { font-size: 24px; font-weight: 600; padding: 12px 22px; border-radius: 999px; border: 2px solid rgba(230, 244, 236, 0.18);
+    background: rgba(230, 244, 236, 0.05); color: #DCEDE4; }
+  .foot { position: absolute; left: 120px; bottom: 56px; font-size: 22px; color: #6F8A80; letter-spacing: 0.04em; }
+
+  .panel { align-self: center; background: rgba(255, 255, 255, 0.04); border: 2px solid rgba(230, 244, 236, 0.12);
+    border-radius: 32px; padding: 44px 46px 40px; }
+  .label { font-size: 20px; letter-spacing: 0.14em; text-transform: uppercase; color: #7E978D; font-weight: 700; margin-bottom: 18px; }
+  .frames { display: grid; gap: 12px; margin-bottom: 40px; }
+  .frame { display: grid; grid-template-columns: 150px 1fr; align-items: center; gap: 18px; padding: 18px 22px; border-radius: 16px;
+    font-size: 25px; background: rgba(230, 244, 236, 0.05); border: 2px solid rgba(230, 244, 236, 0.10); }
+  .mode { font-family: "DejaVu Sans Mono", monospace; font-weight: 700; font-size: 22px; padding: 6px 0; border-radius: 8px; text-align: center; }
+  .v { background: rgba(123, 227, 170, 0.16); color: #7BE3AA; }
+  .s { background: rgba(122, 162, 247, 0.18); color: #9DB8FF; }
+  .frame span.d { color: #C9DAD2; }
+  .grid { display: grid; grid-template-columns: repeat(16, 1fr); gap: 8px; }
+  .grid i { display: block; aspect-ratio: 1; border-radius: 6px; background: rgba(230, 244, 236, 0.10); }
+  .grid i.u { background: #3FB27A; }
+  .grid i.x { background: transparent; border: 3px solid #F07A6E; position: relative; }
+  .note { display: flex; align-items: center; gap: 14px; margin-top: 22px; font-size: 23px; color: #C9DAD2; }
+  .note b { color: #F49A90; font-family: "DejaVu Sans Mono", monospace; font-weight: 700; }
+  .dot { width: 18px; height: 18px; border-radius: 5px; border: 3px solid #F07A6E; flex: none; }
+</style>
+</head>
+<body>
+  <section class="brand">
+    <div class="row"><img src="logo.svg" alt=""><h1>Leafguard</h1></div>
+    <p class="tag">A <em>post-quantum</em> 2-of-3 smart wallet on EIP-8141 frame transactions</p>
+    <p class="sub">Hash-based signatures from two of three guardians. Every one-time leaf is tracked on chain, so a crash,
+      stale backup or cloned device can never get a leaf accepted twice.</p>
+    <div class="chips">
+      <span class="chip">JARDIN signatures</span><span class="chip">ERC-8421 alt mempool</span>
+      <span class="chip">No ECDSA</span><span class="chip">No seed phrase</span>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="label">One payment, three frames</div>
+    <div class="frames">
+      <div class="frame"><span class="mode v">VERIFY</span><span class="d">guardian A signs</span></div>
+      <div class="frame"><span class="mode v">VERIFY</span><span class="d">guardian B signs, approves the fee</span></div>
+      <div class="frame"><span class="mode s">SENDER</span><span class="d">consume both leaves, pay</span></div>
+    </div>
+    <div class="label">LeafLedger: one key slot, 128 leaves</div>
+    <div class="grid" id="g"></div>
+    <div class="note"><span class="dot"></span>a used leaf signed again is refused: <b>StaleLeaf</b></div>
+  </section>
+  <div class="foot">ETHGLOBAL MUMBAI 2026 · DEVNET RESEARCH PROTOTYPE</div>
+  <script>
+    const g = document.getElementById("g");
+    for (let i = 0; i < 128; i++) {
+      const e = document.createElement("i");
+      if (i < 41) e.className = "u";
+      if (i === 23) e.className = "x";
+      g.appendChild(e);
+    }
+  </script>
+</body>
+</html>
