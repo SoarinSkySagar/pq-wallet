@@ -3,7 +3,7 @@
 #
 #   ./start.sh                      chain + alt mempool + wallets + explorer + ngrok tunnels + phone app server
 #   ./start.sh --local              the same without ngrok and the phone app (laptop only)
-#   The explorer gets the fixed ngrok domain below (NGROK_DOMAIN=other.ngrok-free.dev ./start.sh to change it)
+#   The fixed ngrok domain below serves the explorer (/) and alice's wallet (/wallet) (NGROK_DOMAIN=other.ngrok-free.dev ./start.sh to change it)
 #
 # Stop: ./demo.sh stop  (add --chain to pause the network too). Status: ./demo.sh status.
 set -euo pipefail
@@ -31,7 +31,8 @@ echo "  sidecar restarted"
 
 if [ $public = 1 ]; then
   say "3/4  ngrok: alice's wallet, the phone app, the explorer"
-  ./demo.sh tunnel alice --app --explorer ${NGROK_DOMAIN:+--explorer-url "$NGROK_DOMAIN"}
+  if [ -n "$NGROK_DOMAIN" ]; then ./demo.sh tunnel alice --app --site "$NGROK_DOMAIN"
+  else ./demo.sh tunnel alice --app --explorer; fi
 
   say "4/4  phone app dev server (Expo, through ngrok)"
   pkill -f '[e]xpo start --offline' 2>/dev/null || true
@@ -63,8 +64,13 @@ if [ $public = 1 ]; then
   app="$(url_for "$METRO_PORT" http)"
   echo
   echo "Public (ngrok; click 'Visit Site' on ngrok's notice):"
-  echo "  explorer  $(url_for 8300 https)"
-  echo "  alice     $(url_for 8201 https)   pairing code $(code alice)"
+  if [ -n "$NGROK_DOMAIN" ]; then
+    echo "  explorer  https://$NGROK_DOMAIN"
+    echo "  alice     https://$NGROK_DOMAIN/wallet   pairing code $(code alice)   (phone app: wallet URL https://$NGROK_DOMAIN)"
+  else
+    echo "  explorer  $(url_for 8300 https)"
+    echo "  alice     $(url_for 8201 https)   pairing code $(code alice)"
+  fi
   [ -n "$app" ] && echo "  phone app exp://${app#http://}:80   (open in Expo Go, then Scan QR code / enter the alice URL + code)"
 fi
 echo

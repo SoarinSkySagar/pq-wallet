@@ -5,7 +5,8 @@
 #   ./demo.sh up [--fresh] [--no-lan] [--wallets "alice bob carol"]
 #   ./demo.sh status
 #   ./demo.sh stop [--chain]  stop the wallets, the explorer and the tunnel (--chain: also pause the network; `up` resumes it)
-#   ./demo.sh tunnel [alice ...] [--app] [--explorer] [--url <domain>] [--explorer-url <domain>]
+#   ./demo.sh tunnel [alice ...] [--app] [--explorer] [--url <domain>] [--explorer-url <domain>] [--site <domain>]
+#                             --site: one fixed domain for the explorer (/) and the wallet (/wallet), via pqv/gateway.py
 #                             expose wallets (and with --app the app's dev server) over ngrok; prints pairing QR codes
 #   ./demo.sh app [--ngrok | --usb]
 #                             the mobile app's dev server (mobile/, Expo, port 8085, no Expo login); open it in Expo Go:
@@ -272,7 +273,21 @@ summary() {
 # ----------------------------------------------------------------------------- mobile app: ngrok tunnel + Expo
 TUNNEL_DIR="$LOCAL/tunnel"
 tunnel_running() { [ -f "$TUNNEL_DIR/ngrok.pid" ] && kill -0 "$(cat "$TUNNEL_DIR/ngrok.pid")" 2>/dev/null; }
-stop_tunnel() { if tunnel_running; then kill "$(cat "$TUNNEL_DIR/ngrok.pid")"; echo "tunnel: stopped"; fi; rm -f "$TUNNEL_DIR/ngrok.pid"; }
+stop_tunnel() {
+  if tunnel_running; then kill "$(cat "$TUNNEL_DIR/ngrok.pid")"; echo "tunnel: stopped"; fi; rm -f "$TUNNEL_DIR/ngrok.pid"
+  if [ -f "$TUNNEL_DIR/gateway.pid" ] && kill "$(cat "$TUNNEL_DIR/gateway.pid")" 2>/dev/null; then echo "gateway: stopped"; fi
+  rm -f "$TUNNEL_DIR/gateway.pid"
+}
+GATEWAY_PORT="${GATEWAY_PORT:-8400}"
+start_gateway() {   # start_gateway <wallet port>: explorer at /, that wallet at /wallet, on one port (pqv/gateway.py)
+  [ -f "$TUNNEL_DIR/gateway.pid" ] && kill "$(cat "$TUNNEL_DIR/gateway.pid")" 2>/dev/null || true
+  nohup "${PY:-$(pick_python)}" -m pqv.gateway --port "$GATEWAY_PORT" --explorer "$EXPLORER_PORT" --wallet "$1" \
+    > "$TUNNEL_DIR/gateway.log" 2>&1 &
+  echo $! > "$TUNNEL_DIR/gateway.pid"
+  local i
+  for i in $(seq 1 30); do curl -sf -o /dev/null "http://127.0.0.1:$GATEWAY_PORT/" && return 0; sleep 0.3; done
+  die "gateway did not start (see $TUNNEL_DIR/gateway.log)"
+}
 
 tunnel_urls() {   # "<port> <public url>" for every tunnel of the running ngrok agent(s), http and https
   local p
@@ -288,14 +303,15 @@ tunnel_url_for() {   # tunnel_url_for <port> <http|https>
 }
 
 cmd_tunnel() {
-  local names=() explorer=0 app=0 url="" xurl="" n port
+  local names=() explorer=0 app=0 url="" xurl="" site="" n port
   while [ $# -gt 0 ]; do
     case "$1" in
       --explorer) explorer=1 ;;
       --app) app=1 ;;
       --url) shift; url="${1:?--url needs your ngrok domain, e.g. you.ngrok-free.app}" ;;
       --explorer-url) shift; xurl="${1:?--explorer-url needs your ngrok domain}"; explorer=1 ;;
-      -*) die "unknown option $1 (tunnel [alice ...] [--app] [--explorer] [--url <domain>] [--explorer-url <domain>])" ;;
+      --site) shift; site="${1:?--site needs your ngrok domain}" ;;
+      -*) die "unknown option $1 (tunnel [alice ...] [--app] [--explorer] [--url <domain>] [--explorer-url <domain>] [--site <domain>])" ;;
       *) names+=("$1") ;;
     esac
     shift
@@ -307,8 +323,38 @@ cmd_tunnel() {
       || die "wallet $n is not running: ./demo.sh up first"
   done
   [ -z "$url" ] || [ ${#names[@]} -eq 1 ] || die "--url names one domain: use it with a single wallet"
+  [ -z "$site" ] || [ ${#names[@]} -eq 1 ] || die "--site serves one wallet (at /wallet): name one"
   stop_tunnel >/dev/null
   mkdir -p "$TUNNEL_DIR"
+  if [ -n "$site" ]; then
+    explorer_running || die "the explorer is not running: ./demo.sh up first"
+    start_gateway "$(wallet_port "${names[0]}")"
+    {
+      echo 'version: "3"'; echo 'tunnels:'
+      echo "  site: {proto: http, addr: $GATEWAY_PORT, domain: $site}"
+      [ $app = 0 ] || echo "  app: {proto: http, addr: $METRO_PORT, schemes: [http]}"
+    } > "$TUNNEL_DIR/ngrok.yml"
+    local cfg; cfg="$(ngrok config check 2>&1 | sed -n 's/.*file at //p')"
+    log "starting ngrok: https://$site (explorer at /, ${names[0]} at /wallet)$([ $app = 1 ] && echo ' + the app (Metro)')"
+    nohup ngrok start --all ${cfg:+--config "$cfg"} --config "$TUNNEL_DIR/ngrok.yml" --log stdout > "$TUNNEL_DIR/ngrok.log" 2>&1 &
+    echo $! > "$TUNNEL_DIR/ngrok.pid"
+    local i
+    for i in $(seq 1 40); do
+      [ -n "$(tunnel_url_for "$GATEWAY_PORT" https)" ] && { [ $app = 0 ] || [ -n "$(tunnel_url_for "$METRO_PORT" http)" ]; } && break
+      tunnel_running || { tail -5 "$TUNNEL_DIR/ngrok.log" >&2; die "ngrok stopped (see $TUNNEL_DIR/ngrok.log)"; }
+      sleep 0.5
+    done
+    [ -n "$(tunnel_url_for "$GATEWAY_PORT" https)" ] || { tail -5 "$TUNNEL_DIR/ngrok.log" >&2; die "ngrok gave no URL for $site"; }
+    local code link; code="$(cat "$LOCAL/wallets/${names[0]}/pair-code")"; link="https://$site/wallet#pair=$code"
+    echo
+    printf '\033[1mexplorer\033[0m  https://%s\n' "$site"
+    printf '\033[1m%s\033[0m     https://%s/wallet   pairing code \033[1m%s\033[0m\n' "${names[0]}" "$site" "$code"
+    if command -v qrencode >/dev/null; then qrencode -t ansiutf8 -m 2 "$link"; else echo "  pairing link: $link"; fi
+    [ $app = 0 ] || { echo; echo "app (Metro)  $(tunnel_url_for "$METRO_PORT" http)  -> now run: ./demo.sh app --ngrok"; }
+    echo
+    echo "  In the Leafguard app: Scan QR code, or wallet URL https://$site + the code. ./demo.sh stop ends the tunnel."
+    return 0
+  fi
   log "starting ngrok for ${names[*]}$([ $app = 1 ] && echo ' + the app (Metro)')$([ $explorer = 1 ] && echo ' + explorer')"
   if [ ${#names[@]} -eq 1 ] && [ $explorer = 0 ] && [ $app = 0 ]; then
     nohup ngrok http "$(wallet_port "${names[0]}")" ${url:+--url "$url"} --log stdout > "$TUNNEL_DIR/ngrok.log" 2>&1 &
