@@ -5,7 +5,7 @@
 #   ./demo.sh up [--fresh] [--no-lan] [--wallets "alice bob carol"]
 #   ./demo.sh status
 #   ./demo.sh stop [--chain]  stop the wallets, the explorer and the tunnel (--chain: also pause the network; `up` resumes it)
-#   ./demo.sh tunnel [alice ...] [--app] [--explorer] [--url <your-ngrok-domain>]
+#   ./demo.sh tunnel [alice ...] [--app] [--explorer] [--url <domain>] [--explorer-url <domain>]
 #                             expose wallets (and with --app the app's dev server) over ngrok; prints pairing QR codes
 #   ./demo.sh app [--ngrok | --usb]
 #                             the mobile app's dev server (mobile/, Expo, port 8085, no Expo login); open it in Expo Go:
@@ -274,13 +274,14 @@ tunnel_url_for() {   # tunnel_url_for <port> <http|https>
 }
 
 cmd_tunnel() {
-  local names=() explorer=0 app=0 url="" n port
+  local names=() explorer=0 app=0 url="" xurl="" n port
   while [ $# -gt 0 ]; do
     case "$1" in
       --explorer) explorer=1 ;;
       --app) app=1 ;;
       --url) shift; url="${1:?--url needs your ngrok domain, e.g. you.ngrok-free.app}" ;;
-      -*) die "unknown option $1 (tunnel [alice ...] [--app] [--explorer] [--url <domain>])" ;;
+      --explorer-url) shift; xurl="${1:?--explorer-url needs your ngrok domain}"; explorer=1 ;;
+      -*) die "unknown option $1 (tunnel [alice ...] [--app] [--explorer] [--url <domain>] [--explorer-url <domain>])" ;;
       *) names+=("$1") ;;
     esac
     shift
@@ -304,9 +305,9 @@ cmd_tunnel() {
         if [ -n "$url" ]; then echo "  $n: {proto: http, addr: $(wallet_port "$n"), domain: $url}"
         else echo "  $n: {proto: http, addr: $(wallet_port "$n")}"; fi
       done
-      # Expo Go loads the app over plain http on port 80 (exp://<host>:80), so the Metro tunnel serves both schemes
-      [ $app = 0 ] || echo "  app: {proto: http, addr: $METRO_PORT, schemes: [http, https]}"
-      [ $explorer = 0 ] || echo "  explorer: {proto: http, addr: $EXPLORER_PORT}"
+      # Expo Go loads the app over plain http on port 80 (exp://<host>:80); http only, as free ngrok allows 3 endpoints
+      [ $app = 0 ] || echo "  app: {proto: http, addr: $METRO_PORT, schemes: [http]}"
+      [ $explorer = 0 ] || echo "  explorer: {proto: http, addr: $EXPLORER_PORT${xurl:+, domain: $xurl}}"
     } > "$TUNNEL_DIR/ngrok.yml"
     local cfg; cfg="$(ngrok config check 2>&1 | sed -n 's/.*file at //p')"
     nohup ngrok start --all ${cfg:+--config "$cfg"} --config "$TUNNEL_DIR/ngrok.yml" --log stdout > "$TUNNEL_DIR/ngrok.log" 2>&1 &
@@ -315,7 +316,7 @@ cmd_tunnel() {
   local i want=$(( ${#names[@]} + explorer + app )) urls=""
   for i in $(seq 1 40); do
     urls="$(tunnel_urls)"
-    [ "$(printf '%s\n' "$urls" | grep -c ' https://')" -ge "$want" ] && break
+    [ "$(printf '%s\n' "$urls" | grep -c ' http')" -ge "$want" ] && break
     tunnel_running || { tail -5 "$TUNNEL_DIR/ngrok.log" >&2; die "ngrok stopped (see $TUNNEL_DIR/ngrok.log)"; }
     sleep 0.5
   done
