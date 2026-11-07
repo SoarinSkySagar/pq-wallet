@@ -1,4 +1,4 @@
-# AGENTS.md — handoff for agents (and humans) picking up PQ-Vault
+# AGENTS.md — handoff for agents (and humans) picking up Leafguard
 
 Read this first. It is the state of the project as of 2026-11-06, what works, how to run it, where the
 non-obvious traps are, and what is left. User-facing docs: `README.md`; research: `research/REPORT.md`;
@@ -6,10 +6,14 @@ devnet evidence: `docs/RECEIPTS.md`.
 
 ## 1. What this project is
 
-**PQ-Vault**: a 2-of-3 post-quantum guardian wallet on **EIP-8141 frame transactions** submitted through the
+**Leafguard**: a 2-of-3 post-quantum guardian wallet on **EIP-8141 frame transactions** submitted through the
 **ERC-8421 alternative mempool**, using **JARDIN** hash-based signatures (SPHINCS- family). Built for ETHGlobal
 Mumbai 2026. Plus **research** on whether *stateful* hash-based signing survives crashes, stale backups, cloned
 devices, interrupted signing and state rollback — with attacks, a mitigation, and measurements.
+Formerly **PQ-Vault**: user-facing text says Leafguard; code identifiers (`pqv/`, `PQVault*`, `.devnet/`, the
+`pqvault/...` sidecar image, the `pqvault-devnet` enclave, the wallet page's pairing-code storage key) and the
+domain tags `PQ-Vault/v2` / `PQ-Vault/slot/v1` keep the old name on purpose: changing a domain tag changes every
+signature and derived key. `docs/RECEIPTS*.md` are generated and keep the name they were generated with.
 
 Hard rules the user set (keep them):
 - **No ECDSA in the wallet** (the only ECDSA key is the throwaway devnet *deployer* that publishes contracts).
@@ -54,7 +58,7 @@ pqv/wallet.py, app/wallet/         personal MetaMask-style wallet, one process p
 pqv/lan.py                         phone access (`wallets.sh start --lan`, `wallets.sh pair <name>`): 2nd listener on port+1000,
                                    HTTPS from a per-machine devnet CA (.devnet/tls/, openssl CLI, RSA), pairing code per wallet
                                    (wallets/<name>/pair-code, Bearer header on every LAN /api/ call); phones never hold keys
-mobile/                            PQ Wallet phone app (React Native, Expo SDK 58, runs in Expo Go): remote for pqv/wallet.py
+mobile/                            Leafguard phone app (React Native, Expo SDK 58, runs in Expo Go): remote for pqv/wallet.py
                                    over an ngrok tunnel; pairing code in expo-secure-store; App.tsx + src/{api,format,ui}.ts(x)
                                    + src/screens/. Keys never on the phone (JARDIN is Python-only; a JS port = custom crypto)
 pqv/explorer.py, app/explorer/     block explorer (:8300) that decodes frame txs: frames (mode, scope, call, gas, logs),
@@ -132,7 +136,7 @@ Without the guardian secrets in `.devnet/public/` that vault cannot be operated;
   frame 0 VERIFY flags=2 (only_verify, target null) data `validate()`; frame 1 VERIFY flags=1 (pay, target vault)
   data `validate()`; frame 2 SENDER target vault, flags 0, `execute(calls)`. Frame i verifies entry i. ERC-8421
   PREFIX-010 allows at most these two VERIFY frames.
-- **`ethrex_simulateFrameTransaction`**: `valid`/`canonicalMempoolViolation` is the *canonical* mempool verdict. PQ-Vault
+- **`ethrex_simulateFrameTransaction`**: `valid`/`canonicalMempoolViolation` is the *canonical* mempool verdict. Leafguard
   is expected to show `StorageReadNonSender` there; gate on `executionStatus == success`, not `valid`.
 - **Validation budget**: a VERIFY frame costs ~84k on chain with a compact approval, ~292k with a stateless (SPX) one
   (Foundry: 87,756 / 82,110 / 296,854). The ~170k prefix exceeds EIP-8141's combined MAX_VERIFY_GAS (100k); two
@@ -142,7 +146,7 @@ Without the guardian secrets in `.devnet/public/` that vault cannot be operated;
   `SIDECAR_IMAGE=pqvault/mempool-sidecar:budget-010 infra/sidecar-local.sh …`). ethrex's own simulate RPC only *notes*
   the 100k overage in `canonicalMempoolViolation` and still traces, so ethrex needs no reconfiguration.
 - **Calldata floor**: ethrex bills frame txs at max(standard, 13,150 + 64 gas × bytes of frame data + signatures)
-  (EIP-7623/7976 floor, `transaction.rs:calldata_floor_gas`). PQ-Vault txs are floor-bound: execution-gas savings do
+  (EIP-7623/7976 floor, `transaction.rs:calldata_floor_gas`). Leafguard txs are floor-bound: execution-gas savings do
   not lower the bill; fewer bytes do.
 - **Fresh contract accounts start at nonce 1.** The driver reads the nonce from the chain.
 - **Public devnet gas**: contract creation costs far more gas than locally (factory ~18M) — the driver estimates gas; don't hardcode.
@@ -167,6 +171,9 @@ Without the guardian secrets in `.devnet/public/` that vault cannot be operated;
   as a phone and requires the pairing code (one shared `GATE`). `adb reverse` keeps Host localhost, so it stays local.
   The wallet finds its tunnel via ngrok's agent API (127.0.0.1:4040-4042) for `/api/pair`. Never add CORS headers to
   the wallet server: the missing CORS is what keeps other web pages away from a local wallet.
+- **Payment stuck in "Sending"** (sidecar status `Submitted`, ethrex txpool empty, resubmit says "Frame transaction
+  already known"): the sidecar stopped relaying (seen 2026-11-07 after ~6 h up; its log had gone quiet). Fix:
+  `docker restart pqvault-sidecar`, then *Send now* (vault) or send again; the signed tx is reused, no new leaves.
 - **Metro port**: 8081 belongs to the Kurtosis engine container, so the app's dev server runs on 8085 (`METRO_PORT`).
   `expo start --tunnel` needs an Expo login (it failed with a NetworkError to api.expo.dev); `./demo.sh app --ngrok`
   instead sets `EXPO_PACKAGER_PROXY_URL` to the user's ngrok http URL (Expo Go link `exp://<host>:80`) with `--offline`.
