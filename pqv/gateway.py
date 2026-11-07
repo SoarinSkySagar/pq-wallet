@@ -7,7 +7,7 @@ not overlap (explorer: /api/overview|block|tx|address|search; wallet: every othe
 icons), so requests are routed by path and forwarded unchanged, headers included. The wallet still sees the
 tunnel's Host / X-Forwarded-For and therefore still requires its pairing code (pqv/wallet.py H._remote).
 The wallet's service worker is not served here: its offline shell would claim "/", which is the explorer.
-stdlib only; binds 127.0.0.1.
+stdlib only; binds 127.0.0.1 unless --host is given (the Docker image uses 0.0.0.0). /healthz answers 200 at once.
 """
 import argparse
 import http.client
@@ -17,11 +17,18 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 EXPLORER_API = re.compile(r"^/api/(overview|block|tx|address|search)(/|\?|$)")
 HOP = {"connection", "keep-alive", "proxy-connection", "transfer-encoding", "upgrade", "te", "trailer"}
 UP = {}
+STARTING = b"""<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="15">
+<title>Leafguard is starting</title><body style="font:16px system-ui;max-width:560px;margin:15vh auto;padding:0 20px;color:#172131">
+<h1 style="font-size:22px">Leafguard devnet is starting</h1>
+<p>A fresh EIP-8141 chain, the alt mempool and the wallets are booting. This takes about 8 minutes after a
+deploy or restart. This page refreshes itself.</p></body>"""
 
 
 def route(path):
     """(upstream port, upstream path) for a request path, or None for 404."""
     p = path.split("?", 1)[0]
+    if p == "/healthz":
+        return "health", path
     if p in ("/", "/index.html") or EXPLORER_API.match(path):
         return UP["explorer"], path
     if p in ("/wallet", "/wallet/"):
@@ -43,6 +50,8 @@ class H(BaseHTTPRequestHandler):
             self.end_headers()
             return
         port, path = r
+        if port == "health":
+            return self._plain(200, b"ok", "text/plain")
         body = self.rfile.read(int(self.headers.get("content-length", 0) or 0))
         headers = {k: v for k, v in self.headers.items() if k.lower() not in HOP}
         try:
@@ -50,14 +59,11 @@ class H(BaseHTTPRequestHandler):
             c.request(self.command, path, body=body or None, headers=headers)
             resp = c.getresponse()
             data = resp.read()
-        except OSError as e:
-            msg = f"upstream on port {port} is not answering: {e}".encode()
-            self.send_response(502)
-            self.send_header("content-type", "text/plain; charset=utf-8")
-            self.send_header("content-length", str(len(msg)))
-            self.end_headers()
-            self.wfile.write(msg)
-            return
+        except OSError:
+            if self.path.startswith("/api/"):
+                return self._plain(503, b'{"error": "The Leafguard devnet is still starting; try again in a minute."}',
+                                   "application/json")
+            return self._plain(503, STARTING, "text/html; charset=utf-8")
         self.send_response(resp.status)
         for k, v in resp.getheaders():
             if k.lower() not in HOP and k.lower() != "content-length":
@@ -67,6 +73,14 @@ class H(BaseHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(data)
 
+    def _plain(self, status, body, ctype):
+        self.send_response(status)
+        self.send_header("content-type", ctype)
+        self.send_header("content-length", str(len(body)))
+        self.end_headers()
+        if self.command != "HEAD":
+            self.wfile.write(body)
+
     do_GET = do_POST = do_HEAD = _forward
 
     def log_message(self, *a):
@@ -75,13 +89,14 @@ class H(BaseHTTPRequestHandler):
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8400)
     ap.add_argument("--explorer", type=int, default=8300)
     ap.add_argument("--wallet", type=int, default=8201)
     a = ap.parse_args()
     UP.update(explorer=a.explorer, wallet=a.wallet)
-    srv = ThreadingHTTPServer(("127.0.0.1", a.port), H)
-    print(f"gateway on http://127.0.0.1:{a.port}: / -> explorer :{a.explorer}, /wallet -> wallet :{a.wallet}", flush=True)
+    srv = ThreadingHTTPServer((a.host, a.port), H)
+    print(f"gateway on http://{a.host}:{a.port}: / -> explorer :{a.explorer}, /wallet -> wallet :{a.wallet}", flush=True)
     srv.serve_forever()
 
 

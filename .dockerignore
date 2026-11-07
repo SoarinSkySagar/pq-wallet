@@ -1,0 +1,13 @@
+# Docker build context for infra/render/Dockerfile: the toolkit, contracts and network files only
+.devnet
+.git
+mobile
+demo
+branding
+research/results
+contracts/out
+contracts/cache
+**/node_modules
+**/__pycache__
+vendor
+*.mp4

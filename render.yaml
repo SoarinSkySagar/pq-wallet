@@ -1,0 +1,14 @@
+# Render Blueprint: the whole Leafguard demo (devnet chain, alt mempool, wallets, explorer) as one web service.
+# New > Blueprint in the Render dashboard, pick this repository. Devnet only, never real funds.
+# Each deploy or restart starts a fresh chain; it is ready about 8 minutes later (a "starting" page until then).
+services:
+  - type: web
+    name: leafguard
+    runtime: docker
+    dockerfilePath: ./infra/render/Dockerfile
+    dockerContext: .
+    plan: standard            # ~1 GB RAM in use (ethrex, Lighthouse, validator, sidecar, 5 Python servers): 2 GB plan
+    healthCheckPath: /healthz
+    envVars:
+      - key: ALICE_PAIR_CODE  # pairing code for alice's wallet at /wallet and the phone app: 12 characters from
+        sync: false           # A-Z (no I, O) and 2-9, e.g. K7QM-P3XA-WN9D. Leave empty for a random one (in the logs).
