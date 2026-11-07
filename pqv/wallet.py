@@ -357,9 +357,10 @@ def pair_info():
 def manifest():
     a = account()
     name = W.wallet[:1].upper() + W.wallet[1:]
-    icons = [{"src": f"/icons/icon-{n}.png", "sizes": f"{n}x{n}", "type": "image/png", "purpose": p}
+    icons = [{"src": f"icons/icon-{n}.png", "sizes": f"{n}x{n}", "type": "image/png", "purpose": p}
              for p in ("any", "maskable") for n in (192, 512)]
-    return {"id": "/", "name": f"{name}'s Leafguard", "short_name": name, "start_url": "/", "scope": "/",
+    # relative to the manifest's URL, so the app also installs from behind the gateway at /<name>/
+    return {"id": "./", "name": f"{name}'s Leafguard", "short_name": name, "start_url": "./", "scope": "./",
             "display": "standalone", "orientation": "portrait", "background_color": "#FFFFFF",
             "theme_color": ACCENTS[int(a[2:4], 16) % len(ACCENTS)] if a else ACCENTS[1],
             "description": "A 2-of-3 post-quantum smart-account wallet on a devnet. Keys stay on the wallet computer.",

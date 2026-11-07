@@ -1,13 +1,17 @@
-"""One public site for the demo: the explorer at / and one wallet at /wallet, behind a single tunnel domain.
+"""One public site for the demo: the explorer at /, each wallet at /<name>/, behind a single domain.
 
-    python -m pqv.gateway [--port 8400] [--explorer 8300] [--wallet 8201]
+    python -m pqv.gateway [--port 8400] [--explorer 8300] [--wallets alice:8201,bob:8202,carol:8203]
+                          (or --wallet 8201: one wallet, named "alice")
 
-Free ngrok accounts get one fixed domain; this lets the explorer and a wallet share it. The two servers' paths do
-not overlap (explorer: /api/overview|block|tx|address|search; wallet: every other /api/ path, its manifest and
-icons), so requests are routed by path and forwarded unchanged, headers included. The wallet still sees the
-tunnel's Host / X-Forwarded-For and therefore still requires its pairing code (pqv/wallet.py H._remote).
-The wallet's service worker is not served here: its offline shell would claim "/", which is the explorer.
-stdlib only; binds 127.0.0.1 unless --host is given (the Docker image uses 0.0.0.0). /healthz answers 200 at once.
+Free ngrok accounts and a single Render service get one domain; this lets the explorer and the wallets share it.
+- /                     the explorer, and its API (/api/overview|block|tx|address|search)
+- /<name>/...           that wallet: the prefix is stripped and the rest forwarded (/bob/api/state -> /api/state)
+- /wallet/... and any other /api/... path    the first wallet (older links, and the phone app pointed at the
+                        bare domain)
+Requests are forwarded unchanged, headers included, so a wallet still sees the public Host / X-Forwarded-For and
+still requires its pairing code (pqv/wallet.py H._remote). /healthz answers 200 at once; while a server is not up
+yet, pages get a "starting" page and API calls a 503. The wallets' service worker is not served at the root (its
+offline shell would claim "/", the explorer). stdlib only; binds 127.0.0.1 unless --host is given.
 """
 import argparse
 import http.client
@@ -25,17 +29,22 @@ deploy or restart. This page refreshes itself.</p></body>"""
 
 
 def route(path):
-    """(upstream port, upstream path) for a request path, or None for 404."""
+    """(upstream port, upstream path, redirect) for a request path; port None = 404."""
     p = path.split("?", 1)[0]
     if p == "/healthz":
-        return "health", path
+        return "health", path, None
     if p in ("/", "/index.html") or EXPLORER_API.match(path):
-        return UP["explorer"], path
-    if p in ("/wallet", "/wallet/"):
-        return UP["wallet"], "/" + path[len(p):]
+        return UP["explorer"], path, None
+    seg = p.split("/")[1] if p.count("/") >= 1 else ""
+    name = UP["first"] if seg == "wallet" else seg if seg in UP["wallets"] else None
+    if name:
+        prefix = "/" + seg
+        if p == prefix:  # /bob -> /bob/, so the page's relative URLs (icons, manifest) resolve under /bob/
+            return None, None, prefix + "/" + path[len(p):]
+        return UP["wallets"][name], path[len(prefix):] or "/", None
     if p == "/sw.js":
-        return None
-    return UP["wallet"], path
+        return None, None, None
+    return UP["wallets"][UP["first"]], path, None
 
 
 class H(BaseHTTPRequestHandler):
@@ -43,13 +52,18 @@ class H(BaseHTTPRequestHandler):
     timeout = 60
 
     def _forward(self):
-        r = route(self.path)
-        if r is None:
+        port, path, redirect = route(self.path)
+        if redirect:
+            self.send_response(301)
+            self.send_header("location", redirect)
+            self.send_header("content-length", "0")
+            self.end_headers()
+            return
+        if port is None:
             self.send_response(404)
             self.send_header("content-length", "0")
             self.end_headers()
             return
-        port, path = r
         if port == "health":
             return self._plain(200, b"ok", "text/plain")
         body = self.rfile.read(int(self.headers.get("content-length", 0) or 0))
@@ -92,11 +106,14 @@ def main():
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8400)
     ap.add_argument("--explorer", type=int, default=8300)
-    ap.add_argument("--wallet", type=int, default=8201)
+    ap.add_argument("--wallet", type=int, help="one wallet's port (served as alice and at /wallet)")
+    ap.add_argument("--wallets", default="", help="name:port,... ; the first is also /wallet")
     a = ap.parse_args()
-    UP.update(explorer=a.explorer, wallet=a.wallet)
+    pairs = [w.split(":") for w in a.wallets.split(",") if w] or [["alice", str(a.wallet or 8201)]]
+    UP.update(explorer=a.explorer, wallets={n: int(p) for n, p in pairs}, first=pairs[0][0])
     srv = ThreadingHTTPServer((a.host, a.port), H)
-    print(f"gateway on http://{a.host}:{a.port}: / -> explorer :{a.explorer}, /wallet -> wallet :{a.wallet}", flush=True)
+    print(f"gateway on http://{a.host}:{a.port}: / -> explorer :{a.explorer}; "
+          + ", ".join(f"/{n}/ -> :{p}" for n, p in pairs) + f"; /wallet -> {pairs[0][0]}", flush=True)
     srv.serve_forever()
 
 

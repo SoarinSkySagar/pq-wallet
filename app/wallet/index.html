@@ -6,9 +6,9 @@
 <title>Leafguard</title>
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#3B5BA9" id="theme-color">
-<link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" href="/icons/favicon-32.png" sizes="32x32" type="image/png">
-<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Leafguard">
@@ -220,7 +220,10 @@ let needPair = false, pairMsg = "", P = null;
 
 // A phone reaches the wallet computer over the LAN and proves it was paired with the wallet's pairing code. The code
 // arrives in the QR link's #fragment (never sent to a server or logged) or is typed in, and is kept on this phone.
-const PAIR_KEY = "pq-wallet-pairing-code";
+// Served at "/" by the wallet itself, or at "/<name>/" behind the gateway (pqv/gateway.py): every API call is
+// relative to that base, and each base keeps its own pairing code.
+const BASE = location.pathname.replace(/\/(index\.html)?$/, "");
+const PAIR_KEY = "pq-wallet-pairing-code" + (BASE ? ":" + BASE : "");
 const pairCode = () => { try { return localStorage.getItem(PAIR_KEY) || ""; } catch { return ""; } };
 const setPairCode = (c) => { try { c ? localStorage.setItem(PAIR_KEY, c) : localStorage.removeItem(PAIR_KEY); } catch { /* private mode */ } };
 function takePairLink() {
@@ -235,7 +238,7 @@ const isLocal = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
 async function api(path, body) {
   const headers = body ? { "content-type": "application/json" } : {};
   if (pairCode()) headers.authorization = "Bearer " + pairCode();
-  const r = await fetch(path, body ? { method: "POST", headers, body: JSON.stringify(body) } : { headers });
+  const r = await fetch(BASE + path, body ? { method: "POST", headers, body: JSON.stringify(body) } : { headers });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) { const e = new Error(j.error || `request failed (${r.status})`); e.pair = !!j.pair; throw e; }
   return j;
@@ -773,7 +776,7 @@ document.addEventListener("submit", async (ev) => {
 refresh();
 setInterval(() => { if (!busy && !document.hidden && !needPair && (["home", "vault"].includes(screen) || !S || !S.network.connected)) refresh(); }, 4000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden && !busy && !isTyping()) refresh(); });  // back from the background
-if ("serviceWorker" in navigator && window.isSecureContext) navigator.serviceWorker.register("/sw.js").catch(() => { /* still works without */ });
+if ("serviceWorker" in navigator && window.isSecureContext && !BASE) navigator.serviceWorker.register("/sw.js").catch(() => { /* still works without */ });
 </script>
 </body>
 </html>

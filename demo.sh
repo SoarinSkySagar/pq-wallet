@@ -281,7 +281,13 @@ stop_tunnel() {
 GATEWAY_PORT="${GATEWAY_PORT:-8400}"
 start_gateway() {   # start_gateway <wallet port>: explorer at /, that wallet at /wallet, on one port (pqv/gateway.py)
   [ -f "$TUNNEL_DIR/gateway.pid" ] && kill "$(cat "$TUNNEL_DIR/gateway.pid")" 2>/dev/null || true
-  nohup "${PY:-$(pick_python)}" -m pqv.gateway --port "$GATEWAY_PORT" --explorer "$EXPLORER_PORT" --wallet "$1" \
+  local ws="" d
+  for d in "$LOCAL"/wallets/*/; do   # every running wallet at /<name>/, the given one first (also /wallet)
+    [ -f "$d/server.port" ] || continue
+    if [ "$(cat "$d/server.port")" = "$1" ]; then ws="$(basename "$d"):$1${ws:+,}$ws"
+    else ws="$ws${ws:+,}$(basename "$d"):$(cat "$d/server.port")"; fi
+  done
+  nohup "${PY:-$(pick_python)}" -m pqv.gateway --port "$GATEWAY_PORT" --explorer "$EXPLORER_PORT" --wallets "$ws" \
     > "$TUNNEL_DIR/gateway.log" 2>&1 &
   echo $! > "$TUNNEL_DIR/gateway.pid"
   local i

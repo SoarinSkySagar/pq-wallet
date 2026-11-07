@@ -70,20 +70,22 @@ export async function saveConn(c: Conn | null) {
   else await store.deleteItemAsync(STORE_KEY);
 }
 
-/** "abc.ngrok-free.app" -> "https://abc.ngrok-free.app"; keeps only scheme://host[:port]. */
+/** "abc.ngrok-free.app" -> "https://abc.ngrok-free.app"; keeps a path ("host/bob" for a wallet behind the gateway),
+ *  drops the query, the fragment and a trailing slash. */
 export function normalizeUrl(s: string): string | null {
   s = s.trim();
   if (!s) return null;
   if (!/^https?:\/\//i.test(s)) s = "https://" + s;
-  const m = s.match(/^(https?:\/\/[^/?#\s]+)/i);
-  return m ? m[1].replace(/^https?/i, (x) => x.toLowerCase()) : null;
+  const m = s.match(/^(https?:\/\/[^/?#\s]+)(\/[^?#\s]*)?/i);
+  return m ? (m[1].replace(/^https?/i, (x) => x.toLowerCase()) + (m[2] || "")).replace(/\/+$/, "") : null;
 }
 
 export const normalizeCode = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
-/** The wallet computer's pairing QR: "<url>/#pair=<code>" (pqv/wallet.py pair_info). */
+/** The wallet computer's pairing QR: "<url>/#pair=<code>" (pqv/wallet.py pair_info), "<url>/bob/#pair=<code>"
+ *  behind the gateway (pqv/gateway.py). */
 export function parsePairLink(s: string): Conn | null {
-  const m = s.trim().match(/^(https?:\/\/[^/?#\s]+)[^#]*#pair=([A-Za-z0-9-]+)/i);
+  const m = s.trim().match(/^(https?:\/\/[^?#\s]+)[^#]*#pair=([A-Za-z0-9-]+)/i);
   if (!m) return null;
   const url = normalizeUrl(m[1]);
   return url ? { url, code: normalizeCode(m[2]) } : null;

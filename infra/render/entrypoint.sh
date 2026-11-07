@@ -8,8 +8,9 @@
 #   DEPLOYMENT_JSON   the chain's Leafguard contract addresses (.devnet/local/deployment.json on the server)
 #   DEPLOYER_KEY      the throwaway devnet deployer's private key (pays for account setup and test ETH)
 # Optional:
-#   ALICE_PAIR_CODE   pairing code for alice (12 characters, A-Z without I/O and 2-9); random if unset (see the log)
-#   WALLETS           default "alice bob carol"; the first is served at /wallet
+#   ALICE_PAIR_CODE, BOB_PAIR_CODE, CAROL_PAIR_CODE   pairing codes (12 characters, A-Z without I/O and 2-9);
+#                     random if unset (printed in the log)
+#   WALLETS           default "alice bob carol"; each is served at /<name>/, the first also at /wallet
 #   PORT              default 10000 (Render sets it)
 # Wallet keys live in /app/.devnet/local/wallets; mount a persistent disk at /app/.devnet to keep accounts across
 # restarts (otherwise every start creates new accounts, funded by the deployer).
@@ -35,7 +36,9 @@ mkdir -p "$LOCAL/wallets" "$LOGS"
 
 # the gateway answers at once (a "starting" page until the servers are up)
 first="${WALLETS%% *}"
-run gateway "$PY" -m pqv.gateway --host 0.0.0.0 --port "$PORT" --explorer 8300 --wallet 8201
+gw="" port=8201
+for w in $WALLETS; do gw="$gw${gw:+,}$w:$port"; port=$((port + 1)); done
+run gateway "$PY" -m pqv.gateway --host 0.0.0.0 --port "$PORT" --explorer 8300 --wallets "$gw"
 
 # ----------------------------------------------------------------------------- configuration from the environment
 printf '{"ethrex": "%s", "sidecar": "%s"}\n' "$ETHREX_RPC" "$SIDECAR_RPC" > "$LOCAL/network.json"
@@ -52,13 +55,15 @@ curl -sf -m 10 -X POST -H 'content-type: application/json' --data '{"jsonrpc":"2
 log "chain $chain at $ETHREX_RPC, deployer $addr ($(cast balance "$addr" --rpc-url "$ETHREX_RPC" --ether) ETH)"
 
 # ----------------------------------------------------------------------------- servers
-if [ -n "${ALICE_PAIR_CODE:-}" ]; then
-  code="$(printf '%s' "$ALICE_PAIR_CODE" | tr 'a-z' 'A-Z' | tr -cd 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789')"
-  [ ${#code} -eq 12 ] || die "ALICE_PAIR_CODE must be 12 characters from A-Z (no I, O) and 2-9, e.g. K7QM-P3XA-WN9D"
-  mkdir -p "$LOCAL/wallets/alice"
-  printf '%s-%s-%s\n' "${code:0:4}" "${code:4:4}" "${code:8:4}" > "$LOCAL/wallets/alice/pair-code"
-  chmod 600 "$LOCAL/wallets/alice/pair-code"
-fi
+for w in $WALLETS; do   # optional fixed pairing codes: ALICE_PAIR_CODE, BOB_PAIR_CODE, ...
+  v="$(printf '%s' "$w" | tr 'a-z-' 'A-Z_')_PAIR_CODE"
+  [ -n "${!v:-}" ] || continue
+  code="$(printf '%s' "${!v}" | tr 'a-z' 'A-Z' | tr -cd 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789')"
+  [ ${#code} -eq 12 ] || die "$v must be 12 characters from A-Z (no I, O) and 2-9, e.g. K7QM-P3XA-WN9D"
+  mkdir -p "$LOCAL/wallets/$w"
+  printf '%s-%s-%s\n' "${code:0:4}" "${code:4:4}" "${code:8:4}" > "$LOCAL/wallets/$w/pair-code"
+  chmod 600 "$LOCAL/wallets/$w/pair-code"
+done
 port=8201
 for w in $WALLETS; do
   run "wallet-$w" bash -c "cd $APP && exec $PY -m pqv.wallet $w --port $port"
@@ -91,7 +96,8 @@ for w in $WALLETS; do
   fi
   port=$((port + 1))
 done
-log "READY on port $PORT: explorer at /, $first's wallet at /wallet (pairing code $(cat "$LOCAL/wallets/$first/pair-code"))"
+log "READY on port $PORT: explorer at /"
+for w in $WALLETS; do log "  /$w/   pairing code $(cat "$LOCAL/wallets/$w/pair-code")"; done
 
 # ----------------------------------------------------------------------------- stay up; exit if a server dies
 while true; do
