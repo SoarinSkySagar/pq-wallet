@@ -5,7 +5,7 @@ Everything cryptographic is real: signatures come from the upstream JARDIN plain
 (pqv.jardin.CompactSlot -> third_party/JARDIN), acceptance uses the upstream reference verifier,
 and the attacker's view is the exact set of FORS secrets the released signatures reveal.
 What is modelled: device storage (committed vs. not-yet-fsync'd), the chain (in-order processing;
-`ledger=True` enforces q > high-water mark like PQ-Vault's LeafLedger, `ledger=False` is the JARDIN
+`ledger=True` enforces q > high-water mark like Leafguard's LeafLedger, `ledger=False` is the JARDIN
 baseline that keeps no on-chain leaf state), and transaction landing (delays / drops).
 
 Metrics (per run):

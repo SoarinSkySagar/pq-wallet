@@ -65,14 +65,14 @@ def ensure_cert(ips):
         fcntl.flock(lock, fcntl.LOCK_EX)  # several wallets may start at once; they share one CA and one certificate
         if not os.path.exists(ca_crt):
             _openssl("req", "-x509", "-newkey", "rsa:2048", "-nodes", "-sha256", "-days", "825",
-                     "-keyout", ca_key, "-out", ca_crt, "-subj", "/O=PQ-Vault devnet/CN=PQ-Vault devnet local CA",
+                     "-keyout", ca_key, "-out", ca_crt, "-subj", "/O=Leafguard devnet/CN=Leafguard devnet local CA",
                      "-addext", "basicConstraints=critical,CA:TRUE",
                      "-addext", "keyUsage=critical,keyCertSign,cRLSign")
         have = open(sans_f).read() if os.path.exists(sans_f) else ""
         if have != sans or not os.path.exists(crt) or os.path.getmtime(crt) < os.path.getmtime(ca_crt):
             csr, ext = crt + ".csr", crt + ".ext"
             _openssl("req", "-new", "-newkey", "rsa:2048", "-nodes", "-sha256", "-keyout", key, "-out", csr,
-                     "-subj", "/O=PQ-Vault devnet/CN=PQ wallet")
+                     "-subj", "/O=Leafguard devnet/CN=Leafguard")
             with open(ext, "w") as f:
                 f.write(f"subjectAltName={sans}\nextendedKeyUsage=serverAuth\nbasicConstraints=CA:FALSE\n"
                         "keyUsage=critical,digitalSignature,keyEncipherment\n")

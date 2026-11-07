@@ -44,9 +44,9 @@ def section(name: str) -> str:
         lines += ["", "### Why the ERC-8421 alt mempool (recorded node responses)", "",
                   "The vault's VERIFY frame reads the shared LeafLedger (storage not associated with the sender).", "",
                   "| submission | admitted | node response |", "|---|---|---|",
-                  f"| staked PQ-Vault → ethrex canonical mempool (`eth_sendRawTransaction`) | {cmp_['canonical_mempool']['admitted']} | `{json.dumps(cmp_['canonical_mempool'].get('error', cmp_['canonical_mempool'].get('result')))}` |",
+                  f"| staked Leafguard → ethrex canonical mempool (`eth_sendRawTransaction`) | {cmp_['canonical_mempool']['admitted']} | `{json.dumps(cmp_['canonical_mempool'].get('error', cmp_['canonical_mempool'].get('result')))}` |",
                   f"| unstaked vault → ERC-8421 alt mempool | {cmp_['unstaked_alt_mempool']['admitted']} | `{json.dumps(cmp_['unstaked_alt_mempool'].get('error', cmp_['unstaked_alt_mempool'].get('txHash')))}` |",
-                  "| staked PQ-Vault → ERC-8421 alt mempool | True | transactions 1-5 above |"]
+                  "| staked Leafguard → ERC-8421 alt mempool | True | transactions 1-5 above |"]
     adm = net.load("mempool-admission.json")
     if adm:
         lines += ["", "### Mempool admission of vault transactions (`research/mempool_admission.py`)", "",

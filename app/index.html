@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PQ-Vault</title>
+<title>Leafguard</title>
 <meta name="color-scheme" content="light">
 <style>
   :root {
@@ -137,7 +137,7 @@
 </head>
 <body>
 <header class="bar">
-  <h1 class="brand">PQ-Vault<small>2-of-3 post-quantum wallet</small></h1>
+  <h1 class="brand">Leafguard<small>2-of-3 post-quantum wallet</small></h1>
   <div class="net" id="net" aria-live="polite"><span class="chip">connecting…</span></div>
 </header>
 
@@ -194,7 +194,7 @@
 </main>
 
 <footer>
-  Signing happens in the local PQ-Vault process on this machine; this page never sees a secret key.
+  Signing happens in the local Leafguard process on this machine; this page never sees a secret key.
   Devnet only. <span id="mempool-url"></span>
 </footer>
 
@@ -303,7 +303,7 @@ $("guardians").addEventListener("click", async (ev) => {
       openPanel[g] = { html: `A device restored from an old backup would sign with leaf ${r.baselineSigner.leafChosen},
         which is already used on chain (the chain has recorded up to leaf ${r.chainHighWaterMark}).
         The vault ${r.baselineSigner.rejected ? "<strong>rejects</strong> that signature" : "<strong>did not reject</strong> that signature"}.
-        PQ-Vault's own signer checks the chain first and would use leaf ${r.pqVaultSigner.leafChosen} instead. Nothing was sent.` };
+        Leafguard's own signer checks the chain first and would use leaf ${r.pqVaultSigner.leafChosen} instead. Nothing was sent.` };
     } catch (e) { openPanel[g] = { html: `<span style="color:var(--red)">${esc(e.message)}</span>` }; }
     renderGuardians();
   }

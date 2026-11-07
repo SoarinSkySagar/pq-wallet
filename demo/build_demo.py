@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the ~3-minute PQ-Vault demo video from recorded data, locally.
+"""Build the ~3-minute Leafguard demo video from recorded data, locally.
 
 Every number on screen is read from files this repo produced (devnet receipts, experiment JSON, crash
 results); nothing is typed in by hand. Tools: headless Google Chrome (slides + a live UI screenshot),
@@ -44,7 +44,7 @@ th{color:#8b949e;font-weight:500} .grid{display:grid;gap:26px} .card{background:
 """
 
 
-def page(body, foot="PQ-Vault · ETHGlobal Mumbai 2026 · devnet data from docs/RECEIPTS.md & research/results/"):
+def page(body, foot="Leafguard · ETHGlobal Mumbai 2026 · devnet data from docs/RECEIPTS.md & research/results/"):
     return f"<!DOCTYPE html><html><head><meta charset='utf-8'><style>{CSS}</style></head><body><div class='wrap'>{body}<div class='foot'>{html.escape(foot)}</div></div></body></html>"
 
 
@@ -55,14 +55,14 @@ def slides(data):
 
     S.append(("title", page("""
       <div class='kicker'>ETHGlobal Mumbai 2026</div>
-      <h1>PQ-Vault</h1>
+      <h1>Leafguard</h1>
       <p style='font-size:44px'>A 2-of-3 <span class='acc'>post-quantum</span> guardian wallet</p>
       <div class='grid' style='grid-template-columns:repeat(3,1fr);margin-top:40px'>
         <div class='card'><div class='acc' style='font-size:30px'>EIP-8141</div><p>frame transactions: the account verifies its own signatures</p></div>
         <div class='card'><div class='acc' style='font-size:30px'>ERC-8421</div><p>alternative mempool with staking rules</p></div>
         <div class='card'><div class='acc' style='font-size:30px'>JARDIN</div><p>hash-based signatures (SPHINCS- family). <b>No ECDSA.</b></p></div>
       </div>"""),
-      "PQ-Vault. A two-of-three post-quantum guardian wallet for Ethereum, built on EIP-8141 frame transactions "
+      "Leafguard. A two-of-three post-quantum guardian wallet for Ethereum, built on EIP-8141 frame transactions "
       "and the ERC-8421 alternative mempool. Every approval is a hash-based JARDIN signature. There is no ECDSA "
       "anywhere in the wallet."))
 
@@ -121,7 +121,7 @@ def slides(data):
       "rejects that storage access. The alt mempool rejects an unstaked copy of the vault, and admits the staked one."))
 
     S.append(("curve", page("""
-      <div class='kicker'>Research question</div><h2>Do stateful PQ wallets survive crashes, stale backups, clones and rollback?</h2>
+      <div class='kicker'>Research question</div><h2>Do stateful Leafguards survive crashes, stale backups, clones and rollback?</h2>
       <table><tr><th>distinct messages on one leaf (γ)</th><th>1</th><th>2</th><th>3</th><th>5</th><th>10</th><th>20</th></tr>
       <tr><td>forgery cost (bits) — JARDIN k=32, a=4</td><td class='ok'>128</td><td>97.5</td><td>80.2</td><td class='warn'>59.5</td><td class='bad'>34.3</td><td class='bad'>14.9</td></tr></table>"""),
       "Now the research question. These few-time leaves lose security fast when reused: one hundred twenty-eight bits "
@@ -151,7 +151,7 @@ def slides(data):
     cl0, cl1 = g("clone", "durable", False), g("clone", "anchored_w1", "revoke")
     S.append(("mitigation", page(f"""
       <div class='kicker'>Mitigation · 20 seeds, worst case</div><h2>LeafLedger + anchored signer + window + equivocation proofs</h2>
-      <table><tr><th>scenario</th><th>baseline (JARDIN-style)</th><th>PQ-Vault</th></tr>
+      <table><tr><th>scenario</th><th>baseline (JARDIN-style)</th><th>Leafguard</th></tr>
       <tr><td>silent stale backup</td><td class='bad'>γ {sb0['worst_gamma']} · {sb0['total_double_accepted']} double-accepted</td><td class='ok'>γ {sb1['worst_gamma']} · {sb1['total_double_accepted']}</td></tr>
       <tr><td>counter rollback</td><td class='bad'>γ {rb0['worst_gamma']} · {rb0['worst_min_bits']} bits · {rb0['total_double_accepted']} double-accepted</td><td class='ok'>γ {rb1['worst_gamma']} · {rb1['total_double_accepted']}</td></tr>
       <tr><td>cloned device</td><td class='bad'>γ {cl0['worst_gamma']} · exposure {cl0['mean_exposure_steps']:g} blocks</td><td class='warn'>γ {cl1['worst_gamma']} · exposure {cl1['mean_exposure_steps']:g} block</td></tr></table>"""),
@@ -167,9 +167,9 @@ def slides(data):
       <tr><td>baseline vault, tx1 at leaf {b['leaf_tx1']}</td><td class='mono'>{short(b['tx1'])} <span class='ok'>included</span></td></tr>
       <tr><td>device restored from backup, tx2 at <b>the same leaf {b['leaf_tx2']}</b></td><td class='mono'>{short(b['tx2'])} <span class='bad'>included</span></td></tr>
       <tr><td>anyone submits both signatures as an equivocation proof</td><td class='mono'>{short(att['equivocationReport']['tx'])} <span class='ok'>slot revoked</span></td></tr>
-      <tr><td>same restored signer against PQ-Vault</td><td class='ok'>rejected in VERIFY: <code>StaleLeaf(slot, {att['pqVault']['reusedLeaf']})</code></td></tr></table>"""),
+      <tr><td>same restored signer against Leafguard</td><td class='ok'>rejected in VERIFY: <code>StaleLeaf(slot, {att['pqVault']['reusedLeaf']})</code></td></tr></table>"""),
       "And live on the public devnet: a vault without leaf tracking accepted two transactions signed with the same leaf after a "
-      "stale restore. A watcher's equivocation proof revoked that slot, and PQ-Vault rejected the same restored "
+      "stale restore. A watcher's equivocation proof revoked that slot, and Leafguard rejected the same restored "
       "signer with StaleLeaf."))
 
     S.append(("limits", page("""
@@ -216,7 +216,7 @@ def main():
     data = {"receipts": load(f".devnet/{net}/receipts.json"), "exp": load("research/results/experiments.json"),
             "sweeps": load("research/results/sweeps.json"), "crash": load("research/results/crash_test.json"),
             "cmp": load(f".devnet/{net}/mempool-comparison.json"), "att": load(f".devnet/{net}/attack-stale-restore.json")}
-    segs, narration = [], ["# PQ-Vault demo narration", ""]
+    segs, narration = [], ["# Leafguard demo narration", ""]
     t = 0.0
     for i, (name, doc, text) in enumerate(slides(data)):
         png = os.path.join(BUILD, f"{i:02d}-{name}.png")

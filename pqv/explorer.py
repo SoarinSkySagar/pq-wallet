@@ -1,10 +1,10 @@
-"""PQ-Vault block explorer for the local EIP-8141 devnet (stdlib only; binds 127.0.0.1).
+"""Leafguard block explorer for the local EIP-8141 devnet (stdlib only; binds 127.0.0.1).
 
     python -m pqv.explorer [--network local] [--port 8300]
 
 Standard explorers do not understand EIP-8141 frame transactions (type 0x06). This one shows every block and
 transaction, and for frame transactions each frame (mode, approval scope, target, gas limit and gas used, status,
-the decoded call and the logs it emitted) and each signature entry (for PQ-Vault: which guardian, compact one-time
+the decoded call and the logs it emitted) and each signature entry (for Leafguard: which guardian, compact one-time
 leaf or stateless SPX, slot and leaf index). Known addresses are named from the local devnet state (contracts,
 vaults, wallet accounts). A background thread indexes the chain so address pages can list their transactions.
 
@@ -85,7 +85,7 @@ def names():
     d = NET.deployment
     for k, label in (("frameOps", "PQVaultFrameOps"), ("forsVerifier", "JARDIN FORS verifier"),
                      ("spxVerifier", "JARDIN SPX verifier"), ("staking", "Staking registry (ERC-8421)"),
-                     ("factory", "PQVaultFactory"), ("ledger", "LeafLedger"), ("vault", "PQ-Vault (admin, 2-of-3)"),
+                     ("factory", "PQVaultFactory"), ("ledger", "LeafLedger"), ("vault", "Leafguard (admin, 2-of-3)"),
                      ("baselineVault", "Baseline vault (no leaf ledger)"), ("unstakedVault", "Unstaked vault (control)"),
                      ("smallVault", "Slot-refresh test vault")):
         if d.get(k):
@@ -170,7 +170,7 @@ def decode_log(l):
 
 
 def decode_entry(sig, sender):
-    """A PQ-Vault ARBITRARY signature entry: guardian, kind, slot, leaf."""
+    """A Leafguard ARBITRARY signature entry: guardian, kind, slot, leaf."""
     raw = bytes.fromhex(sig["signature"][2:]) if sig.get("signature") else b""
     out = {"scheme": {0: "ARBITRARY", 1: "SECP256K1", 2: "P256"}.get(_h(sig["scheme"]), sig["scheme"]),
            "bytes": len(raw), "msg": sig.get("msg")}
@@ -444,7 +444,7 @@ def main():
     NET = dv.Net(a.network)
     threading.Thread(target=indexer, daemon=True).start()
     srv = ThreadingHTTPServer(("127.0.0.1", a.port), H)
-    print(f"PQ-Vault explorer on http://127.0.0.1:{a.port}  (node: {NET.cfg['ethrex']})")
+    print(f"Leafguard explorer on http://127.0.0.1:{a.port}  (node: {NET.cfg['ethrex']})")
     srv.serve_forever()
 
 

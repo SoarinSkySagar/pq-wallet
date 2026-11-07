@@ -1,4 +1,4 @@
-// Talks to a PQ-Vault wallet server (pqv/wallet.py) running on the wallet computer. The keys and the signing stay
+// Talks to a Leafguard wallet server (pqv/wallet.py) running on the wallet computer. The keys and the signing stay
 // there: this app only holds the server URL and the wallet's pairing code, sent as a Bearer token on every call.
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";

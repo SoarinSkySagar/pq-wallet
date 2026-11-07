@@ -1,6 +1,6 @@
 # Keeping stateful post-quantum wallets safe through crashes, stale backups, clones and rollback
 
-*PQ-Vault research report — ETHGlobal Mumbai 2026. Every number below is produced by code in this
+*Leafguard research report — ETHGlobal Mumbai 2026. Every number below is produced by code in this
 repository (commands in §10). Results are from a simulator driven by real JARDIN signatures, real-process
 crash runs, Foundry tests against the real JARDIN verifier contracts, and EIP-8141 devnet transactions.
 Nothing here has been audited; claims of novelty are limited to "not found in the sources we reviewed" (§3).*
@@ -17,7 +17,7 @@ parameters is steep:
 | forgery cost, bits | 128.0 | 97.5 | 80.2 | 59.5 | 34.3 | 14.9 |
 
 (−k·log2(1 − (1 − 2^−a)^γ); identical to the table in the JARDIN README; checked in
-`tests/test_sim_invariants.py`.) We ask whether a stateful PQ wallet stays secure when its signing state
+`tests/test_sim_invariants.py`.) We ask whether a stateful Leafguard stays secure when its signing state
 goes wrong in the ways real devices do — **crashes, interrupted signing, outdated backup restoration,
 device cloning, and state rollback** — and what can be done about the cases that are not already solved.
 
@@ -31,7 +31,7 @@ device cloning, and state rollback** — and what can be done about the cases th
   verifies any q (no counter, "no SSTORE on Type 2").
 - **SPHINCS-** (`nconsigny/SPHINCS-` @ 4c76aaf): stateless EVM-optimised SPHINCS+ variants (C11, C13,
   SLH-DSA-128-24 …). Stateless, so not subject to the failures studied here, but 3.7–6.6 KB and 94k–276k gas.
-- Our own **PQ-Vault** (this repo): 2-of-3 guardian wallet on EIP-8141 using the JARDIN verifiers unmodified.
+- Our own **Leafguard** (this repo): 2-of-3 guardian wallet on EIP-8141 using the JARDIN verifiers unmodified.
 
 ## 3. What is already solved (literature and implementations)
 
@@ -60,7 +60,7 @@ the closest analogue we know of is equivocation slashing in proof-of-stake conse
 - **G3 – concurrent clones**: two live copies sign the same fresh leaf.
 - **G4 – no on-chain enforcement**: a JARDIN account accepts a reused leaf; it cannot tell.
 - **G5 (found while building)** – JARDIN's EIP-8141 frame account takes `sigHash` from calldata, so the
-  SENDER frame payload is not bound (documented as a known limitation in its source). PQ-Vault binds to
+  SENDER frame payload is not bound (documented as a known limitation in its source). Leafguard binds to
   `TXPARAM(0x08)` instead.
 - **G6 (found while building, our own bug)** – with split verification (one guardian in `VERIFY`, one in
   the body), the second guardian's `ARBITRARY` bytes are elided from the canonical signature hash, so a
@@ -85,7 +85,7 @@ fresh devnet keys).
    times, at random moments and (fault-injection mode) the instant a signature is released; we count leaves
    that released two messages.
 3. **On-chain adversarial tests** (`contracts/test/PQVault.t.sol`): real JARDIN signatures verified by the
-   real JARDIN verifier contracts inside PQ-Vault; only the EIP-8141 opcodes are simulated.
+   real JARDIN verifier contracts inside Leafguard; only the EIP-8141 opcodes are simulated.
 4. **Devnet**: real EIP-8141 frame transactions through the ERC-8421 sidecar (§8).
 
 Signer policies compared: `naive` (persist after signing, no fsync), `durable` (burn-before-sign, atomic
@@ -114,7 +114,7 @@ The real-process crash results are in §7.4.
 
 ### 6.1 How bad does it get? (sensitivity sweeps, 10 seeds, `research/sweeps.py`)
 
-| Sweep | baseline worst γ → lowest forgery cost | PQ-Vault (anchored, W=1, LeafLedger) |
+| Sweep | baseline worst γ → lowest forgery cost | Leafguard (anchored, W=1, LeafLedger) |
 |---|---|---|
 | same stale backup restored r = 1, 2, 4, 8 times | γ 2 / 3 / 5 / 9 → **96.0 / 78.5 / 57.2 / 35.6 bits** | γ 1 at every r |
 | counter rewound by d = 1, 2, 3, 5 every 5 signatures | γ 2 / 2 / 3 / 8 → 96.0 / 96.0 / 78.5 / **39.4 bits** | γ 1 at every d |
@@ -130,7 +130,7 @@ coverage of revealed FORS leaves is random.
 Four layers, each aimed at a gap; all are implemented.
 
 1. **LeafLedger (on-chain, G4).** A shared contract stores, per slot (keyed by keccak(seed‖root), not by
-   account), the highest leaf any PQ-Vault consumed. The vault's `VERIFY` frame rejects q ≤ mark
+   account), the highest leaf any Leafguard consumed. The vault's `VERIFY` frame rejects q ≤ mark
    (`StaleLeaf`), and the body frame advances the mark. Keying by slot means one guardian device protecting
    several vaults has one counter. Reading it from `VERIFY` touches storage not associated with the sender:
    the canonical EIP-8141 mempool refuses that, the ERC-8421 alt mempool admits it for a staked sender.
@@ -167,7 +167,7 @@ guardian uses a distinct slot per vault. We did not build or measure the per-vau
 
 ### 7.1 Comparison (worst case over 20 seeds)
 
-| Scenario | JARDIN-style durable | durable + LeafLedger | PQ-Vault (anchored, W=1, LeafLedger) | PQ-Vault + equivocation reports |
+| Scenario | JARDIN-style durable | durable + LeafLedger | Leafguard (anchored, W=1, LeafLedger) | Leafguard + equivocation reports |
 |---|---|---|---|---|
 | silent stale backup | γ 2 · 200 double-accepted | γ 2 · 0 · exposure 0 | **γ 1** · 0 | **γ 1** · 0 |
 | counter rollback | γ 3 · 78.5 bits · 420 | γ 3 · 0 · exposure 0 | **γ 1** | **γ 1** |
@@ -205,7 +205,7 @@ See §9.
 
 At γ = 100 essentially every FORS secret of the leaf is public (expected forgery cost
 −32·log2(1−(15/16)^100) ≈ 0.07 bits): a signer that persists *after* releasing can be fully broken by an
-adversary who controls power or reset timing. Burn-before-sign removes this, which is why every PQ-Vault
+adversary who controls power or reset timing. Burn-before-sign removes this, which is why every Leafguard
 signer burns first; the residual problems are the ones it cannot see (stale restore, rollback, clones).
 
 ## 8. Devnet results
@@ -244,16 +244,16 @@ than locally (factory 18.06M vs 2.55M), consistent with a different state-gas pr
 
 **Why the alt mempool is necessary (recorded node responses).**
 Recorded on both networks, identical outcome:
-- Staked PQ-Vault → ethrex canonical mempool: rejected, `validation-prefix simulation failed: StorageReadNonSender`.
+- Staked Leafguard → ethrex canonical mempool: rejected, `validation-prefix simulation failed: StorageReadNonSender`.
 - Unstaked copy of the same vault → ERC-8421 gateway/sidecar: rejected, `unstaked payer accessed <LeafLedger> slot …`
   (public: `0x15c9…de23`).
-- Staked PQ-Vault → ERC-8421 gateway/sidecar: admitted and included (transactions 1–5, 9).
+- Staked Leafguard → ERC-8421 gateway/sidecar: admitted and included (transactions 1–5, 9).
 
 **Live attack (controlled test wallets).** On the public devnet, a baseline vault (no leaf tracking,
 JARDIN-style burn-before-sign signer) included two transfers authorised with leaf 1 of the same slot for
 different transactions after the device state file was restored from a backup (blocks 416 and 421). A third
 party then submitted the two public signatures to `LeafLedger.reportEquivocation`, which verified both with the
-JARDIN verifier and revoked the slot (block 423). The same restored signer against PQ-Vault (re-signing guardian
+JARDIN verifier and revoked the slot (block 423). The same restored signer against Leafguard (re-signing guardian
 0's consumed leaf 2) was refused by the vault's VERIFY frame in simulation and by the gateway: revert data
 `0x7dced17e…02` = `StaleLeaf(slotId, 2)`. (Local run: blocks 211/212/213, `StaleLeaf(slotId, 4)`.)
 
@@ -310,7 +310,7 @@ traces. `infra/local-net.sh` brings up ethrex (eip8141-tracer) + Lighthouse + th
 | baseline vault, two transfers on the **same** leaf after a stale restore | blocks 120, 121 | | 379,513 each |
 | watcher's equivocation proof revokes that slot | block 122 | | (legacy tx) |
 
-The same restored signer against PQ-Vault was refused in VERIFY frame 0: `StaleLeaf(slotId, 2)` (selector
+The same restored signer against Leafguard was refused in VERIFY frame 0: `StaleLeaf(slotId, 2)` (selector
 `0x7dced17e`), in simulation and by the sidecar.
 
 **Admission (recorded node responses):**
@@ -323,7 +323,7 @@ The same restored signer against PQ-Vault was refused in VERIFY frame 0: `StaleL
 | staked vault → [BUDGET-010] sidecar | admitted and included (table above) |
 
 **Cost.** ethrex bills a frame transaction at `max(standard, 12,000 + 475·frames + 100·signatures + 64·bytes)` plus
-state gas (EIP-7623/7976 calldata floor, `transaction.rs`); PQ-Vault transactions are floor-bound, so the bill is
+state gas (EIP-7623/7976 calldata floor, `transaction.rs`); Leafguard transactions are floor-bound, so the bill is
 set by bytes, not by execution gas. A transfer costs **379,513** gas versus 378,782 for the original two-frame
 design (+731 = one more frame, 475, and its 4-byte `validate()` selector, 256). About 91% of a transfer's bytes are
 the two 2,705-byte FORS signatures.
@@ -384,8 +384,8 @@ change but means renewal needs two available guardians.
   per-boot instance IDs from the hardware RNG + leaf *leases* granted strictly above all previous leases on chain
   (authorised by the stateless key) + an on-device light client verifying the lease; residual: live RAM/VM
   snapshots (reuse bounded by lease size), and today's light-client signatures (BLS) are not post-quantum.
-  Where nothing can be trusted, use the stateless path (PQ-Vault already supports it as the second approval).
-- **Cross-protocol reuse.** The ledger only sees PQ-Vault usage. The same slot used in another account type
+  Where nothing can be trusted, use the stateless path (Leafguard already supports it as the second approval).
+- **Cross-protocol reuse.** The ledger only sees Leafguard usage. The same slot used in another account type
   (e.g. a JARDIN 4337 account) is not tracked.
 - **Single guardian could spend fees (two-frame design only).** Resolved by the current design (§8.1): both
   approvals are verified in VERIFY frames. The price is a validation prefix above EIP-8141's 100k, so the vault

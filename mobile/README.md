@@ -1,6 +1,6 @@
-# PQ Wallet (mobile app)
+# Leafguard (mobile app)
 
-A React Native (Expo SDK 58) app for the PQ-Vault personal wallets (`pqv/wallet.py`). The phone is a screen: the
+A React Native (Expo SDK 58) app for the Leafguard personal wallets (`pqv/wallet.py`). The phone is a screen: the
 wallet's three JARDIN post-quantum keys, the signing and the EIP-8141 frame transactions stay on the wallet computer.
 The app talks to that computer's wallet server over HTTPS (an ngrok tunnel) and sends the wallet's pairing code as a
 Bearer token on every call. The pairing code is kept in the phone's keystore (`expo-secure-store`).
@@ -27,7 +27,7 @@ How the phone loads the app:
 
 Expo's own `--tunnel` needs an Expo login and its ngrok package; the options above avoid both.
 
-Then in PQ Wallet choose **Scan QR code** and scan the pairing QR from `./demo.sh tunnel` (also shown on the wallet's
+Then in Leafguard choose **Scan QR code** and scan the pairing QR from `./demo.sh tunnel` (also shown on the wallet's
 **Phone** screen at http://127.0.0.1:8201 while the tunnel runs).
 
 Free ngrok URLs change on every restart. Either use your account's free static domain

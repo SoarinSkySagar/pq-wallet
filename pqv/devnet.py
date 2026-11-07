@@ -1,4 +1,4 @@
-"""PQ-Vault devnet driver: deploy infrastructure, create guardians and a vault, send 2-of-3 frame txs.
+"""Leafguard devnet driver: deploy infrastructure, create guardians and a vault, send 2-of-3 frame txs.
 
     python -m pqv.devnet <network> status
     python -m pqv.devnet <network> deploy-infra
@@ -214,7 +214,7 @@ class Guardian:
         self._spx = None
         self._slots = {}
         path = net.path(f"{prefix}-{self.i}-leaves.json")
-        # PQ-Vault guardians use the anchored store; the baseline (attack demo) uses JARDIN-style burn-before-sign only.
+        # Leafguard guardians use the anchored store; the baseline (attack demo) uses JARDIN-style burn-before-sign only.
         self.leaves = AnchoredLeafStore(path, net.ledger_hwm) if anchored else DurableLeafStore(path)
 
     @property
@@ -412,7 +412,7 @@ def vault_call(net: Net, calls, approvers=(0, 1), stateless=(), label="vault cal
     print("signing: " + ", ".join(f"guardian {i} ({k})" for i, k in zip(idx, kinds)))
     sh = sign_vault_tx(tx, signers, kinds)
     sim = simulate(tx)
-    # `valid`/`violation` are ethrex's *canonical* (EIP-8141 public mempool) verdict. PQ-Vault's VERIFY frames
+    # `valid`/`violation` are ethrex's *canonical* (EIP-8141 public mempool) verdict. Leafguard's VERIFY frames
     # read the shared LeafLedger and exceed the combined 100k budget, so they are expected to be canonically
     # invalid and admitted by an ERC-8421 alt mempool (staked sender); what must hold is that execution succeeds.
     brief = {k: sim.get(k) for k in ("valid", "prefixShape", "violation", "canonicalMempoolViolation", "executionStatus",
@@ -495,7 +495,7 @@ def cmd_attack_stale_restore(net: Net):
     Guardian 0 signs tx1 at leaf q; its device is then restored from a backup taken before that signature;
     it signs tx2 at the *same* leaf q. We show (1) the baseline vault includes both, (2) a watcher turns the
     two public signatures into an equivocation proof that revokes the slot in the LeafLedger, and (3) the
-    same restored signer cannot get a reused leaf past PQ-Vault's VERIFY frame.
+    same restored signer cannot get a reused leaf past Leafguard's VERIFY frame.
     """
     import shutil
     report = {}
@@ -532,7 +532,7 @@ def cmd_attack_stale_restore(net: Net):
                  "txHash": r["transactionHash"], "block": int(r["blockNumber"], 16), "status": r["status"],
                  "gasUsed": int(r["gasUsed"], 16), "network": net.name, "time": int(time.time()), "legacyTx": True})
     net.save("receipts.json", recs)
-    # (3) the same stale signer against PQ-Vault
+    # (3) the same stale signer against Leafguard
     gs = guardians(net)
     pg = gs[0]
     pslot = pg.slot()

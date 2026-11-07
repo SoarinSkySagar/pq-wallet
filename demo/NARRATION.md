@@ -1,7 +1,7 @@
-# PQ-Vault demo narration
+# Leafguard demo narration
 
 **0:00 — title**  
-PQ-Vault. A two-of-three post-quantum guardian wallet for Ethereum, built on EIP-8141 frame transactions and the ERC-8421 alternative mempool. Every approval is a hash-based JARDIN signature. There is no ECDSA anywhere in the wallet.
+Leafguard. A two-of-three post-quantum guardian wallet for Ethereum, built on EIP-8141 frame transactions and the ERC-8421 alternative mempool. Every approval is a hash-based JARDIN signature. There is no ECDSA anywhere in the wallet.
 
 **0:15 — problem**  
 A large quantum computer breaks every elliptic-curve key. EIP-8141 lets an account verify any signature in its own validation frame, so hash-based signatures work today. The cheap ones, though, are stateful: a few-time key that signs two different messages with the same leaf leaks its secrets. That is what this project studies.
@@ -28,7 +28,7 @@ We attacked controlled test wallets with real JARDIN signatures. Restoring the s
 The mitigation has four layers: the on-chain leaf ledger, a signer anchored to the chain's mark, a one-transaction in-flight window, and permissionless equivocation proofs that revoke a slot everywhere. Stale backups and rollbacks go from hundreds of double-accepted signatures to zero. Clones can't be prevented, but exposure drops from 20 blocks to one.
 
 **2:25 — live-attack**  
-And live on the public devnet: a vault without leaf tracking accepted two transactions signed with the same leaf after a stale restore. A watcher's equivocation proof revoked that slot, and PQ-Vault rejected the same restored signer with StaleLeaf.
+And live on the public devnet: a vault without leaf tracking accepted two transactions signed with the same leaf after a stale restore. A watcher's equivocation proof revoked that slot, and Leafguard rejected the same restored signer with StaleLeaf.
 
 **2:38 — limits**  
 Limits: the signer trusts its host for the chain view, in-flight transactions are a residual window, and the deployed alt mempool still caps validation at one hundred thousand gas, so the second signature is checked after approval. Code, tests, receipts and the full report are open source.

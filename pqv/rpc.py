@@ -23,7 +23,7 @@ def call(url: str, method: str, params=None, timeout: float = 60):
     _id += 1
     body = json.dumps({"jsonrpc": "2.0", "id": _id, "method": method, "params": params or []}).encode()
     req = urllib.request.Request(url, data=body, headers={"content-type": "application/json",
-                                                          "user-agent": "pq-vault/0.1"})
+                                                          "user-agent": "leafguard/0.1"})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             resp = json.loads(r.read())

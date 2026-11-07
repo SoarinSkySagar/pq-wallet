@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start / stop several PQ-Vault personal wallets for a demo (one browser tab each).
+# Start / stop several Leafguard personal wallets for a demo (one browser tab each).
 #
 #   infra/wallets.sh start alice bob carol     # -> http://127.0.0.1:8201, :8202, :8203
 #   infra/wallets.sh start --lan alice bob     # also serve the mobile app to phones: https://<lan-ip>:9201, :9202
@@ -10,7 +10,7 @@
 # The wallet page is an installable mobile app (PWA). Phones are only screens: keys and signing stay in the wallet
 # process on this computer. See pqv/lan.py for the HTTPS certificate and the pairing code.
 #
-# Needs a running network with PQ-Vault contracts (infra/local-net.sh up). Each wallet keeps its keys and
+# Needs a running network with Leafguard contracts (infra/local-net.sh up). Each wallet keeps its keys and
 # account under .devnet/local/wallets/<name>/; open its page and press "Create wallet" the first time.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -72,7 +72,7 @@ cmd_pair() {
   echo "  pairing code: $(cat "$RUN/$name/pair-code")"
   command -v qrencode >/dev/null && qrencode -t ansiutf8 -m 2 "$link"
   echo "Android over USB instead (no certificate, no code): adb reverse tcp:$port tcp:$port, then open http://localhost:$port"
-  echo "The PQ Wallet app (mobile/) from any network: ./demo.sh tunnel $name"
+  echo "The Leafguard app (mobile/) from any network: ./demo.sh tunnel $name"
 }
 
 cmd_status() {

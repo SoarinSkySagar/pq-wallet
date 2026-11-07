@@ -1,10 +1,10 @@
-"""Guardian keys for PQ-Vault, on top of the upstream JARDIN reference signers.
+"""Guardian keys for Leafguard, on top of the upstream JARDIN reference signers.
 
 Every hash-based operation (key generation, signing, local verification) is delegated to the
 unmodified files in third_party/JARDIN/script:
   - jardin_spx_signer.py         plain SPHINCS+ (stateless; JARDIN "Type 1" / registration path)
   - jardin_fors_plain_signer.py  plain FORS, k=32 a=4, outer Merkle tree of 2^h leaves (stateful compact path)
-This module only wires keys together and encodes PQ-Vault signature entries.
+This module only wires keys together and encodes Leafguard signature entries.
 
 Slot derivation follows the JARDIN write-up (sub-key from HMAC-SHA512 over the master secret and a
 fresh per-slot random value r), feeding JARDIN's own `jardin_derive_keys`.

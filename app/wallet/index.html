@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>PQ Wallet</title>
+<title>Leafguard</title>
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#3B5BA9" id="theme-color">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="PQ Wallet">
+<meta name="apple-mobile-web-app-title" content="Leafguard">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
   :root {
@@ -292,7 +292,7 @@ async function refresh() {
     $("theme-color").content = accentFor(S.account.address);
     try { A = await api("/api/activity"); } catch { /* keep the last list */ }
   }
-  document.title = S ? `${cap(S.name)}'s PQ Wallet` : "PQ Wallet";
+  document.title = S ? `${cap(S.name)}'s Leafguard` : "Leafguard";
   if (vaultId && (screen === "vault" || screen === "propose")) { try { V = await api("/api/vaults/" + vaultId); } catch { /* keep */ } }
   if (!busy && !isTyping()) render();
 }
@@ -546,7 +546,7 @@ function receiveScreen() {
 function setupScreen() {
   const stale = S.staleAccount ? `<p class="small" style="color:var(--warn)">This wallet's previous account (${short(S.staleAccount)}) is not on the
     connected network, which was probably restarted. Creating a wallet makes a new account; the old keys are archived.</p>` : "";
-  const infra = S.network.infra ? "" : `<p class="small" style="color:var(--bad)">This network has no PQ-Vault contracts yet. Run infra/local-net.sh up first.</p>`;
+  const infra = S.network.infra ? "" : `<p class="small" style="color:var(--bad)">This network has no Leafguard contracts yet. Run infra/local-net.sh up first.</p>`;
   return `<div class="screen center">${avatar(hexOf(S.name), "big")}
     <h2 style="margin-top:14px">Create ${esc(cap(S.name))}'s wallet</h2>
     <p class="muted">Your account will be a smart contract guarded by three post-quantum keys kept ${here()}.
@@ -583,16 +583,16 @@ function pairScreen() {
 function phoneScreen() {
   const back = `<button class="back" type="button" data-go="home">← Back</button>`;
   if (!P) return `<div class="screen">${back}<p class="muted">Loading…</p></div>`;
-  const app = P.tunnel ? `<h2 style="margin-top:6px">In the PQ Wallet app</h2>
+  const app = P.tunnel ? `<h2 style="margin-top:6px">In the Leafguard app</h2>
     <div class="qr" role="img" aria-label="QR code for the mobile app">${P.tunnel.qr}</div>
     <p class="small mono wrap" style="margin:0">${esc(P.tunnel.url)}</p>
     <p class="small muted" style="margin:12px 0 2px">Pairing code</p><p class="code" style="margin:0">${esc(P.code)}</p>
-    <p class="note" style="text-align:left">Open the PQ Wallet app (./demo.sh app), choose Scan QR code, and scan this. It works from
+    <p class="note" style="text-align:left">Open the Leafguard app (./demo.sh app), choose Scan QR code, and scan this. It works from
       any network through the ngrok tunnel; the keys and the signing stay on this computer.</p>` : "";
   if (!P.enabled) return `<div class="screen ${app ? "center" : ""}">${back.replace('class="back"', 'class="back" style="display:block"')}${app || `<h2>Use this wallet on your phone</h2>`}
     <p ${app ? 'class="small" style="text-align:left;margin-top:18px"' : ""}>${app ? "Same Wi-Fi without the app: " : ""}Phone access over the LAN is off. Restart this wallet with it on:</p>
     <p class="msg mono small" style="text-align:left">infra/wallets.sh stop<br>infra/wallets.sh start --lan ${esc(S.name)} …</p>
-    ${app ? "" : `<p class="note">Or run ./demo.sh tunnel ${esc(S.name)} for the PQ Wallet app. The phone becomes a screen for this wallet; the keys and the signing stay on this computer.</p>`}</div>`;
+    ${app ? "" : `<p class="note">Or run ./demo.sh tunnel ${esc(S.name)} for the Leafguard app. The phone becomes a screen for this wallet; the keys and the signing stay on this computer.</p>`}</div>`;
   return `<div class="screen center">${back.replace('class="back"', 'class="back" style="display:block"')}${app}<h2${app ? ' style="margin-top:26px"' : ""}>${app ? "In a phone browser (same Wi-Fi)" : `Use ${esc(cap(S.name))}'s wallet on a phone`}</h2>
     ${P.qr ? `<div class="qr" role="img" aria-label="QR code for the phone link">${P.qr}</div>` : ""}
     <p class="small mono wrap" style="margin:0">${esc(P.url)}</p>
@@ -606,7 +606,7 @@ function phoneScreen() {
     </ol>
     <p class="note" style="text-align:left">Android over USB needs no certificate: run <span class="mono">adb reverse tcp:${location.port} tcp:${location.port}</span>
       and open <span class="mono">http://localhost:${location.port}</span> on the phone. Anyone with the pairing code ${app ? "and the tunnel URL " : "on your network "}can use this wallet;
-      keep it to yourself.${app ? "" : " For the PQ Wallet app from any network: ./demo.sh tunnel " + esc(S.name) + "."}</p></div>`;
+      keep it to yourself.${app ? "" : " For the Leafguard app from any network: ./demo.sh tunnel " + esc(S.name) + "."}</p></div>`;
 }
 
 function jobScreen() {

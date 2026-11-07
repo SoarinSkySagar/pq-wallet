@@ -1,4 +1,4 @@
-"""A personal PQ-Vault wallet (MetaMask-style), one per process, for demos with several users.
+"""A personal Leafguard wallet (MetaMask-style), one per process, for demos with several users.
 
     python -m pqv.wallet <name> [--port 8201] [--network local] [--lan [--lan-port 9201]]
     infra/wallets.sh start [--lan] alice bob carol      # several wallets, one port each
@@ -8,7 +8,7 @@ on the same network; its /api/ calls need the wallet's pairing code (pqv/lan.py)
 loopback listener through a tunnel (ngrok, ./demo.sh tunnel); such forwarded requests need the code too (H._remote).
 Keys never leave this process.
 
-Each wallet is its own account: a 2-of-3 PQ-Vault smart account whose three JARDIN keys live on this computer
+Each wallet is its own account: a 2-of-3 Leafguard smart account whose three JARDIN keys live on this computer
 (.devnet/<network>/wallets/<name>/). It shares the network's contracts (factory, LeafLedger, verifiers) with every
 other wallet. The browser page only sees public data; signing happens in this process. Test ETH comes from the
 throwaway devnet deployer (the only ECDSA key in the project), which also pays for deploying the account.
@@ -281,7 +281,7 @@ def op_create():
     if account():
         raise RuntimeError("this wallet already has an account")
     if not W.deployment.get("factory"):
-        raise RuntimeError("the network has no PQ-Vault contracts yet: run infra/local-net.sh up first")
+        raise RuntimeError("the network has no Leafguard contracts yet: run infra/local-net.sh up first")
     if W.load("guardians.json"):  # keys of an account on a network that no longer exists
         old = os.path.join(W.dir, f"archive-{int(time.time())}")
         os.makedirs(old)
@@ -359,7 +359,7 @@ def manifest():
     name = W.wallet[:1].upper() + W.wallet[1:]
     icons = [{"src": f"/icons/icon-{n}.png", "sizes": f"{n}x{n}", "type": "image/png", "purpose": p}
              for p in ("any", "maskable") for n in (192, 512)]
-    return {"id": "/", "name": f"{name}'s PQ Wallet", "short_name": name, "start_url": "/", "scope": "/",
+    return {"id": "/", "name": f"{name}'s Leafguard", "short_name": name, "start_url": "/", "scope": "/",
             "display": "standalone", "orientation": "portrait", "background_color": "#FFFFFF",
             "theme_color": ACCENTS[int(a[2:4], 16) % len(ACCENTS)] if a else ACCENTS[1],
             "description": "A 2-of-3 post-quantum smart-account wallet on a devnet. Keys stay on the wallet computer.",
@@ -524,7 +524,7 @@ def main():
     W = WalletNet(a.network, a.name)
     GATE, PORT = lan.Gate(lan.pairing_code(W.dir)), a.port
     httpd = ThreadingHTTPServer(("127.0.0.1", a.port), H)
-    print(f"{a.name}'s PQ-Vault wallet on http://127.0.0.1:{a.port}", flush=True)
+    print(f"{a.name}'s Leafguard wallet on http://127.0.0.1:{a.port}", flush=True)
     lan_file = os.path.join(W.dir, "lan.json")
     with contextlib.suppress(FileNotFoundError):
         os.remove(lan_file)

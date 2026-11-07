@@ -1,4 +1,4 @@
-"""PQ-Vault wallet server (stdlib only; binds 127.0.0.1).
+"""Leafguard wallet server (stdlib only; binds 127.0.0.1).
 
     python -m pqv.server <network> [--port 8141]
 
@@ -203,7 +203,7 @@ def _friendly(e):
 
 def demo_stale_restore(g_idx: int):
     """Live rollback attack on our own devnet test wallet: guardian g's device is 'restored from an old
-    backup' (leaf counter reset to 1). (a) The PQ-Vault signer (AnchoredLeafStore) resumes above the
+    backup' (leaf counter reset to 1). (a) The Leafguard signer (AnchoredLeafStore) resumes above the
     chain-anchored mark, so no leaf is reused. (b) A baseline JARDIN-style signer (DurableLeafStore,
     no anchoring) re-signs a consumed leaf; ethrex simulation shows the vault's VERIFY frame rejecting it
     (LeafLedger StaleLeaf), so it can never be included. Nothing is broadcast in (b)."""
@@ -314,7 +314,7 @@ def main():
     a = ap.parse_args()
     NET = dv.Net(a.network)
     srv = ThreadingHTTPServer(("127.0.0.1", a.port), H)
-    print(f"PQ-Vault wallet on http://127.0.0.1:{a.port}  (network: {a.network})")
+    print(f"Leafguard wallet on http://127.0.0.1:{a.port}  (network: {a.network})")
     srv.serve_forever()
 
 

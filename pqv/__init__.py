@@ -1,4 +1,4 @@
-"""pqv: PQ-Vault toolkit.
+"""pqv: Leafguard toolkit.
 
 - frametx / rlp: EIP-8141 frame transaction codec for the chain-1337 alt-mempool devnet
   (layout of the `ethrex-eip8141-tracer` profile in @forshtat/hegota-support).

@@ -1,4 +1,4 @@
-// PQ Wallet: a phone app for a PQ-Vault wallet. The wallet itself (three JARDIN post-quantum keys, signing, the
+// Leafguard: a phone app for a Leafguard wallet. The wallet itself (three JARDIN post-quantum keys, signing, the
 // EIP-8141 frame transactions) runs on the wallet computer (pqv/wallet.py); this app reaches it over an HTTPS
 // tunnel such as ngrok, paired with the wallet's pairing code. See mobile/README.md.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";

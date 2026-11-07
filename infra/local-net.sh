@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-command local EIP-8141 network for PQ-Vault (replaces the public hackathon gateway):
+# One-command local EIP-8141 network for Leafguard (replaces the public hackathon gateway):
 #   Kurtosis: ethrex (forshtat eip8141-tracer @ 9aa3645d) + Lighthouse (focil)    -> infra/local-devnet.sh
 #   skandha ERC-8421 alt-mempool sidecar, [BUDGET-010] build by default           -> infra/sidecar-local.sh
 #

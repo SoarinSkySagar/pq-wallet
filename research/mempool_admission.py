@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Record how mempools treat a 2-of-3 PQ-Vault three-frame transaction (evidence for REPORT §8.1).
+"""Record how mempools treat a 2-of-3 Leafguard three-frame transaction (evidence for REPORT §8.1).
 
     python -m research.mempool_admission <network> <tag> [--vault vault] [--guardians 0,1] [--stateless ""]
 

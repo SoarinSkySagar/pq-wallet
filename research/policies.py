@@ -10,9 +10,9 @@ storage object that the simulator can snapshot, restore, clone, roll back and cr
                be told apart from a fresh one, so it is still used)
   reslot       durable, plus JARDIN's restore rule: a device restored from the mnemonic draws a fresh
                r and registers a new slot; applied whenever the device knows it was restored
-  anchored     durable, plus q > chain high-water mark (PQ-Vault LeafLedger floor)
+  anchored     durable, plus q > chain high-water mark (Leafguard LeafLedger floor)
   anchored_w1  anchored, plus an in-flight window W=1: never sign q > hwm + 1, so at most one
-               signed-but-unconfirmed leaf exists at any time (PQ-Vault default)
+               signed-but-unconfirmed leaf exists at any time (Leafguard default)
 """
 from dataclasses import dataclass, field
 from typing import Dict, Optional

@@ -29,7 +29,7 @@ FROM $BASE
 COPY root/packages/executor/src /usr/app/packages/executor/src
 RUN cd /usr/app/packages/executor && ../../node_modules/.bin/tsc -p tsconfig.build.json \\
  && grep -q MAX_VERIFY_GAS_STAKED_ENTITY lib/services/UserOpValidation/utils/validationPrefix.js
-LABEL org.opencontainers.image.description="forshtat/mempool-workshop-sidecar@2e22ff0a + ERC-8421 [BUDGET-010] per-entity validation budgets (PQ-Vault)"
+LABEL org.opencontainers.image.description="forshtat/mempool-workshop-sidecar@2e22ff0a + ERC-8421 [BUDGET-010] per-entity validation budgets (Leafguard)"
 EOF
 docker build -q -t "$TAG" "$CTX"
 echo "built $TAG"

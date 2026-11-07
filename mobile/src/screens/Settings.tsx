@@ -86,7 +86,7 @@ export function Setup() {
           Any two of them sign each payment, so there is no seed phrase to write down.</T>
         {S.staleAccount ? <T small center style={{ color: C.warn, marginBottom: 12 }}>This wallet's previous account ({short(S.staleAccount)}) is not on
           the connected network, which was probably restarted. Creating a wallet makes a new account; the old keys are archived.</T> : null}
-        {!S.network.infra ? <T small center style={{ color: C.bad, marginBottom: 12 }}>This network has no PQ-Vault contracts yet. Run ./demo.sh on the wallet computer first.</T> : null}
+        {!S.network.infra ? <T small center style={{ color: C.bad, marginBottom: 12 }}>This network has no Leafguard contracts yet. Run ./demo.sh on the wallet computer first.</T> : null}
       </View>
       <Btn title="Create wallet" onPress={create} disabled={!S.network.infra} />
       <T small muted center style={{ marginTop: 10 }}>Creating the account and adding 1 test ETH takes about 20 seconds.</T>

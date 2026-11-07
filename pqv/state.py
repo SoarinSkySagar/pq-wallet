@@ -6,7 +6,7 @@ relies on (JARDIN: "burn-before-sign"; NIST SP 800-208 §8.1: update the state i
 storage before releasing a signature): the next q is written and fsync'd before the signature
 exists. On its own it cannot detect that the file was restored from an older backup, copied to a
 second device, or rolled back - see research/ for the attacks and for `AnchoredLeafStore`, the
-mitigation PQ-Vault's signer uses: it never signs at or below the chain-anchored high-water mark.
+mitigation Leafguard's signer uses: it never signs at or below the chain-anchored high-water mark.
 """
 import json
 import os

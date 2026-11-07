@@ -1,6 +1,6 @@
 # ERC-8421 `[BUDGET-010]` for the workshop alt-mempool sidecar
 
-PQ-Vault (2-of-3) checks both guardians' post-quantum signatures inside the validation prefix, one per VERIFY
+Leafguard (2-of-3) checks both guardians' post-quantum signatures inside the validation prefix, one per VERIFY
 frame: about 84k gas each on chain with a compact approval (~292k with a stateless one; `docs/RECEIPTS-local.md`),
 ~170k in total. The workshop sidecar (`forshtat/mempool-workshop-sidecar` @ `2e22ff0a`, image digest
 `sha256:c4cdc5c7…`) caps the **sum over the whole prefix** at EIP-8141's `MAX_VERIFY_GAS = 100,000`, so it rejects

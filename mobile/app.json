@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "PQ Wallet",
-    "slug": "pq-wallet",
+    "name": "Leafguard",
+    "slug": "leafguard",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -9,10 +9,10 @@
     "backgroundColor": "#FFFFFF",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "dev.pqvault.wallet"
+      "bundleIdentifier": "dev.leafguard.wallet"
     },
     "android": {
-      "package": "dev.pqvault.wallet",
+      "package": "dev.leafguard.wallet",
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -23,7 +23,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "PQ Wallet uses the camera to scan pairing and address QR codes.",
+          "cameraPermission": "Leafguard uses the camera to scan pairing and address QR codes.",
           "recordAudioAndroid": false
         }
       ]

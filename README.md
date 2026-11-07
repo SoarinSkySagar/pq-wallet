@@ -1,9 +1,13 @@
-# PQ-Vault
+# Leafguard
 
 **A 2-of-3 post-quantum guardian wallet for EIP-8141 frame transactions, plus research on keeping *stateful*
 hash-based signatures safe through crashes, stale backups, cloned devices and rollback.**
 
 Built for ETHGlobal Mumbai 2026. Devnet only — research prototype, not audited, never use real funds.
+
+The project was called PQ-Vault while it was built, and the code keeps that name where changing it would change
+behaviour: the `pqv/` package, the `PQVault*` contracts, and the signing domain tags `PQ-Vault/v2` and
+`PQ-Vault/slot/v1` (renaming those would invalidate every existing key and signature).
 
 - **No ECDSA in the wallet.** Every approval is a JARDIN hash-based signature (SPHINCS-/FORS family,
   keccak-based) carried in an EIP-8141 `ARBITRARY` signature entry and checked against the protocol's
@@ -35,7 +39,7 @@ contracts/          Foundry project: PQVault, PQVaultFactory, LeafLedger, PQVaul
 pqv/                Python toolkit: frame-tx codec, JARDIN key wrapper, leaf-state stores, devnet driver, UI server
 app/                Wallet website: balance, send with two guardians (shown frame by frame), guardian key health
                     as 128-leaf grids, renew / replace guardians, activity. No external scripts, fonts or trackers
-mobile/             PQ Wallet phone app (React Native / Expo): a remote for the personal wallets, keys stay on the computer
+mobile/             Leafguard phone app (React Native / Expo): a remote for the personal wallets, keys stay on the computer
 research/           Simulator, crash experiment, results/, REPORT.md
 infra/              local-net.sh: one-command local network (Kurtosis ethrex eip8141-tracer + Lighthouse + skandha);
                     sidecar-budget010/ (ERC-8421 per-entity budgets for the skandha sidecar)
@@ -96,7 +100,7 @@ infra/wallets.sh start alice bob carol   # -> http://127.0.0.1:8201, :8202, :820
 infra/wallets.sh status | stop
 ```
 
-Each wallet is one person's account: a 2-of-3 PQ-Vault smart account whose three post-quantum keys stay on this
+Each wallet is one person's account: a 2-of-3 Leafguard smart account whose three post-quantum keys stay on this
 computer (`.devnet/local/wallets/<name>/`). The first visit offers **Create wallet** (keys, account and 1 test ETH,
 about 20 s). Then: balance, **Send** (pick another wallet or paste an address, review with the network fee, confirm),
 **Receive**, **Add test ETH**, activity (sent and received, read from the chain), key health, and network settings
@@ -165,9 +169,9 @@ Full local-devnet bring-up (including the native arm64 ethrex build for Apple Si
   mempool rejects an unstaked copy (`unstaked payer accessed … LeafLedger slot`) and admits the staked vault.
 - **Live attack:** a JARDIN-style vault with no on-chain leaf state included two transactions signed with the
   same few-time leaf after a stale backup restore; the slot was then revoked by a permissionless equivocation
-  proof; PQ-Vault refused the same restored signer with `StaleLeaf`.
+  proof; Leafguard refused the same restored signer with `StaleLeaf`.
 - **Research:** under stale restores, rollbacks and lost state the baseline reaches γ = 9 (35.6-bit forgery cost)
-  and hundreds of double-accepted signatures; PQ-Vault keeps γ = 1 with zero double acceptance. Clones remain
+  and hundreds of double-accepted signatures; Leafguard keeps γ = 1 with zero double acceptance. Clones remain
   γ = n, bounded to ~1 block of exposure by equivocation revocation. A persist-after-sign signer under fault
   injection reached γ = 100. Details and limitations: [research/REPORT.md](research/REPORT.md).
 
