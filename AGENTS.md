@@ -167,6 +167,9 @@ Without the guardian secrets in `.devnet/public/` that vault cannot be operated;
   as a phone and requires the pairing code (one shared `GATE`). `adb reverse` keeps Host localhost, so it stays local.
   The wallet finds its tunnel via ngrok's agent API (127.0.0.1:4040-4042) for `/api/pair`. Never add CORS headers to
   the wallet server: the missing CORS is what keeps other web pages away from a local wallet.
+- **Metro port**: 8081 belongs to the Kurtosis engine container, so the app's dev server runs on 8085 (`METRO_PORT`).
+  `expo start --tunnel` needs an Expo login (it failed with a NetworkError to api.expo.dev); `./demo.sh app --ngrok`
+  instead sets `EXPO_PACKAGER_PROXY_URL` to the user's ngrok http URL (Expo Go link `exp://<host>:80`) with `--offline`.
 - **Mobile app**: Expo Go runs only the newest SDK, so keep `mobile/` on it (`npx expo install --fix`); use
   `npx expo install` for packages. Free ngrok: one agent per account (`./demo.sh tunnel a b` runs several tunnels in
   one agent), URL changes on restart unless `--url <static domain>`. Starting ngrok was blocked by the auto-mode

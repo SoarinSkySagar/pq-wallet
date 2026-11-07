@@ -133,9 +133,10 @@ running on this computer; ngrok exposes a wallet to the phone:
 
 ```sh
 ./demo.sh                      # network, mempool, wallets, explorer
-./demo.sh tunnel alice         # ngrok https URL for alice + a pairing QR code in the terminal
+./demo.sh tunnel alice --app   # ngrok: alice's wallet + the app's dev server; prints a pairing QR code
                                # (--url <your-ngrok-domain> for a URL that survives restarts; --explorer; several names)
-./demo.sh app                  # Expo dev server: scan its QR with Expo Go (same Wi-Fi), or ./demo.sh app --tunnel
+./demo.sh app --ngrok          # Expo dev server (port 8085, no Expo login): open its exp:// link in Expo Go
+                               # same Wi-Fi: ./demo.sh app; Android over USB: ./demo.sh app --usb
 ```
 
 In the app, choose **Scan QR code** and scan the pairing QR (it is also on the wallet's **Phone** screen while the

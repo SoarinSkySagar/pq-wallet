@@ -5,9 +5,11 @@
 #   ./demo.sh up [--fresh] [--no-lan] [--wallets "alice bob carol"]
 #   ./demo.sh status
 #   ./demo.sh stop [--chain]  stop the wallets, the explorer and the tunnel (--chain: also pause the network; `up` resumes it)
-#   ./demo.sh tunnel [alice ...] [--explorer] [--url <your-ngrok-domain>]
-#                             expose wallets to the mobile app over ngrok (any network) and print each pairing QR code
-#   ./demo.sh app [--tunnel]  start the mobile app's dev server (mobile/, Expo); open it in Expo Go on the phone
+#   ./demo.sh tunnel [alice ...] [--app] [--explorer] [--url <your-ngrok-domain>]
+#                             expose wallets (and with --app the app's dev server) over ngrok; prints pairing QR codes
+#   ./demo.sh app [--ngrok | --usb]
+#                             the mobile app's dev server (mobile/, Expo, port 8085, no Expo login); open it in Expo Go:
+#                             same Wi-Fi by default, --ngrok through ./demo.sh tunnel --app, --usb for Android via adb
 #
 # `up` is safe to re-run. It
 #   1. brings up the local EIP-8141 network: reuses a running one, resumes stopped containers after a Docker
@@ -23,6 +25,7 @@ cd "$ROOT"
 LOCAL=.devnet/local
 ENCLAVE="${PQV_ENCLAVE:-pqvault-devnet}"
 EXPLORER_PORT="${EXPLORER_PORT:-8300}"
+METRO_PORT="${METRO_PORT:-8085}"     # the mobile app's dev server (8081 is the Kurtosis engine's)
 BASE_PORT="${BASE_PORT:-8201}"
 HEGOTA_BLOCK=66        # frame transactions are enabled from here (infra/local-net.sh)
 LOW_BALANCE_WEI=100000000000000000   # 0.1 ETH
@@ -257,23 +260,27 @@ TUNNEL_DIR="$LOCAL/tunnel"
 tunnel_running() { [ -f "$TUNNEL_DIR/ngrok.pid" ] && kill -0 "$(cat "$TUNNEL_DIR/ngrok.pid")" 2>/dev/null; }
 stop_tunnel() { if tunnel_running; then kill "$(cat "$TUNNEL_DIR/ngrok.pid")"; echo "tunnel: stopped"; fi; rm -f "$TUNNEL_DIR/ngrok.pid"; }
 
-tunnel_urls() {   # "<port> <public url>" for every https tunnel of the running ngrok agent(s)
+tunnel_urls() {   # "<port> <public url>" for every tunnel of the running ngrok agent(s), http and https
   local p
   for p in 4040 4041 4042; do
     curl -sf -m 2 "http://127.0.0.1:$p/api/tunnels" 2>/dev/null | python3 -c 'import json,re,sys
 for t in json.load(sys.stdin).get("tunnels", []):
     m = re.search(r":(\d+)/?$", str(t.get("config", {}).get("addr", "")))
-    if m and t.get("public_url", "").startswith("https://"): print(m[1], t["public_url"])' 2>/dev/null || true
+    if m and t.get("public_url", "").startswith("http"): print(m[1], t["public_url"])' 2>/dev/null || true
   done
+}
+tunnel_url_for() {   # tunnel_url_for <port> <http|https>
+  tunnel_urls | awk -v p="$1" -v s="$2://" '$1 == p && index($2, s) == 1 {print $2; exit}'
 }
 
 cmd_tunnel() {
-  local names=() explorer=0 url="" n port
+  local names=() explorer=0 app=0 url="" n port
   while [ $# -gt 0 ]; do
     case "$1" in
       --explorer) explorer=1 ;;
+      --app) app=1 ;;
       --url) shift; url="${1:?--url needs your ngrok domain, e.g. you.ngrok-free.app}" ;;
-      -*) die "unknown option $1 (tunnel [alice ...] [--explorer] [--url <domain>])" ;;
+      -*) die "unknown option $1 (tunnel [alice ...] [--app] [--explorer] [--url <domain>])" ;;
       *) names+=("$1") ;;
     esac
     shift
@@ -287,23 +294,28 @@ cmd_tunnel() {
   [ -z "$url" ] || [ ${#names[@]} -eq 1 ] || die "--url names one domain: use it with a single wallet"
   stop_tunnel >/dev/null
   mkdir -p "$TUNNEL_DIR"
-  log "starting ngrok for ${names[*]}$([ $explorer = 1 ] && echo ' + explorer')"
-  if [ ${#names[@]} -eq 1 ] && [ $explorer = 0 ]; then
+  log "starting ngrok for ${names[*]}$([ $app = 1 ] && echo ' + the app (Metro)')$([ $explorer = 1 ] && echo ' + explorer')"
+  if [ ${#names[@]} -eq 1 ] && [ $explorer = 0 ] && [ $app = 0 ]; then
     nohup ngrok http "$(wallet_port "${names[0]}")" ${url:+--url "$url"} --log stdout > "$TUNNEL_DIR/ngrok.log" 2>&1 &
   else
     {   # one agent, several tunnels (ngrok allows one agent session per account)
       echo 'version: "3"'; echo 'tunnels:'
-      for n in "${names[@]}"; do echo "  $n: {proto: http, addr: $(wallet_port "$n")}"; done
+      for n in "${names[@]}"; do
+        if [ -n "$url" ]; then echo "  $n: {proto: http, addr: $(wallet_port "$n"), domain: $url}"
+        else echo "  $n: {proto: http, addr: $(wallet_port "$n")}"; fi
+      done
+      # Expo Go loads the app over plain http on port 80 (exp://<host>:80), so the Metro tunnel serves both schemes
+      [ $app = 0 ] || echo "  app: {proto: http, addr: $METRO_PORT, schemes: [http, https]}"
       [ $explorer = 0 ] || echo "  explorer: {proto: http, addr: $EXPLORER_PORT}"
     } > "$TUNNEL_DIR/ngrok.yml"
     local cfg; cfg="$(ngrok config check 2>&1 | sed -n 's/.*file at //p')"
     nohup ngrok start --all ${cfg:+--config "$cfg"} --config "$TUNNEL_DIR/ngrok.yml" --log stdout > "$TUNNEL_DIR/ngrok.log" 2>&1 &
   fi
   echo $! > "$TUNNEL_DIR/ngrok.pid"
-  local i want=$(( ${#names[@]} + explorer )) urls=""
+  local i want=$(( ${#names[@]} + explorer + app )) urls=""
   for i in $(seq 1 40); do
     urls="$(tunnel_urls)"
-    [ "$(printf '%s\n' "$urls" | grep -c https)" -ge "$want" ] && break
+    [ "$(printf '%s\n' "$urls" | grep -c ' https://')" -ge "$want" ] && break
     tunnel_running || { tail -5 "$TUNNEL_DIR/ngrok.log" >&2; die "ngrok stopped (see $TUNNEL_DIR/ngrok.log)"; }
     sleep 0.5
   done
@@ -311,7 +323,7 @@ cmd_tunnel() {
   for n in "${names[@]}"; do
     port="$(wallet_port "$n")"
     local pub code link
-    pub="$(printf '%s\n' "$urls" | awk -v p="$port" '$1 == p {print $2; exit}')"
+    pub="$(tunnel_url_for "$port" https)"
     [ -n "$pub" ] || { warn "$n: no tunnel came up (free ngrok plans limit endpoints; see $TUNNEL_DIR/ngrok.log)"; continue; }
     code="$(cat "$LOCAL/wallets/$n/pair-code")"
     link="$pub/#pair=$code"
@@ -319,21 +331,54 @@ cmd_tunnel() {
     printf '\033[1m%s\033[0m  %s   pairing code \033[1m%s\033[0m\n' "$n" "$pub" "$code"
     if command -v qrencode >/dev/null; then qrencode -t ansiutf8 -m 2 "$link"; else echo "  pairing link: $link"; fi
   done
+  if [ $app = 1 ]; then
+    echo; echo "app (Metro)  $(tunnel_url_for "$METRO_PORT" http || true)  -> now run: ./demo.sh app --ngrok"
+  fi
   if [ $explorer = 1 ]; then
-    echo; echo "explorer  $(printf '%s\n' "$urls" | awk -v p="$EXPLORER_PORT" '$1 == p {print $2; exit}')"
+    echo; echo "explorer  $(tunnel_url_for "$EXPLORER_PORT" https)"
   fi
   echo
   echo "  In the PQ Wallet app: Scan QR code (or type the URL and the code). ./demo.sh stop also stops the tunnel."
   echo "  The wallets still only need the pairing code: anyone with the URL alone gets 'not paired'."
 }
 
-cmd_app() {
+cmd_app() {   # app [--usb | --ngrok] [expo start options]
+  local mode=lan
+  case "${1:-}" in --usb) mode=usb; shift ;; --ngrok) mode=ngrok; shift ;; --lan) shift ;; esac
   command -v npm >/dev/null || die "Node.js/npm is needed for the mobile app's dev server"
   cd "$ROOT/mobile"
   [ -d node_modules ] || { log "installing the mobile app's packages (npm ci)"; npm ci --no-audit --no-fund; }
-  log "starting Expo: install Expo Go on the phone, then scan the QR code below"
-  echo "  (same Wi-Fi as this computer; otherwise ./demo.sh app --tunnel)"
-  exec npx expo start "$@"
+  # Metro's default port 8081 is taken by the Kurtosis engine; --offline: no Expo account or login needed
+  local args=(--offline --port "$METRO_PORT") link
+  case "$mode" in
+    usb)
+      command -v adb >/dev/null || die "adb is not installed (sudo apt install adb)"
+      [ "$(adb devices | awk 'NR > 1 && $2 == "device"' | wc -l)" -ge 1 ] \
+        || die "no Android phone over USB: enable USB debugging, plug it in, accept the prompt on the phone"
+      adb reverse "tcp:$METRO_PORT" "tcp:$METRO_PORT" >/dev/null
+      link="exp://127.0.0.1:$METRO_PORT"
+      args+=(--localhost)
+      log "USB: the phone reaches this computer's port $METRO_PORT through adb; opening Expo Go in a few seconds"
+      ( for _ in $(seq 1 60); do curl -sf -o /dev/null "http://127.0.0.1:$METRO_PORT/status" && break; sleep 1; done
+        adb shell am start -a android.intent.action.VIEW -d "$link" >/dev/null 2>&1 ) &
+      ;;
+    ngrok)
+      local pub; pub="$(tunnel_url_for "$METRO_PORT" http)"
+      [ -n "$pub" ] || pub="$(tunnel_url_for "$METRO_PORT" https)"
+      [ -n "$pub" ] || die "no ngrok tunnel to Metro: run ./demo.sh tunnel alice --app first"
+      export EXPO_PACKAGER_PROXY_URL="$pub"
+      link="exp://${pub#*://}:$([ "${pub%%://*}" = http ] && echo 80 || echo 443)"
+      log "ngrok: the app loads through $pub (any network, no Expo login)"
+      ;;
+    lan)
+      args+=(--lan)
+      link="exp://$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i < NF; i++) if ($i == "src") print $(i + 1); exit}'):$METRO_PORT"
+      log "same Wi-Fi: the phone loads the app from this computer's port $METRO_PORT (no luck? use --ngrok or --usb)"
+      ;;
+  esac
+  echo "  Install Expo Go on the phone. Open this in Expo Go (scan, or Enter URL manually): $link"
+  command -v qrencode >/dev/null && qrencode -t ansiutf8 -m 2 "$link"
+  exec npx expo start "${args[@]}" "$@"
 }
 
 # ----------------------------------------------------------------------------- commands

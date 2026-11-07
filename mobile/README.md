@@ -15,10 +15,20 @@ On the wallet computer:
 ./demo.sh app              # Expo dev server (npm ci on first run)
 ```
 
-On the phone: install **Expo Go** (Play Store / App Store), scan the QR code that `./demo.sh app` prints (Android:
-in Expo Go; iPhone: with the Camera app). The phone must be on the same Wi-Fi as the computer for this step; if it
-is not, use `./demo.sh app --tunnel`. In PQ Wallet choose **Scan QR code** and scan the pairing QR from
-`./demo.sh tunnel` (also shown on the wallet's **Phone** screen at http://127.0.0.1:8201 while the tunnel runs).
+On the phone: install **Expo Go** (Play Store / App Store) and open the `exp://` link that `./demo.sh app` prints
+(scan its QR code: Android in Expo Go, iPhone with the Camera app; or *Enter URL manually* in Expo Go). The dev
+server runs on port 8085 (8081 belongs to the Kurtosis engine) with `--offline`, so no Expo account or login is needed.
+How the phone loads the app:
+
+- same Wi-Fi as the computer: `./demo.sh app`
+- any network, through your ngrok: `./demo.sh tunnel alice --app` then `./demo.sh app --ngrok`
+  (one ngrok agent serves the wallet and the dev server; Expo Go loads `exp://<host>.ngrok-free.app:80`)
+- Android over USB: `./demo.sh app --usb` (adb reverse, opens Expo Go on the phone by itself)
+
+Expo's own `--tunnel` needs an Expo login and its ngrok package; the options above avoid both.
+
+Then in PQ Wallet choose **Scan QR code** and scan the pairing QR from `./demo.sh tunnel` (also shown on the wallet's
+**Phone** screen at http://127.0.0.1:8201 while the tunnel runs).
 
 Free ngrok URLs change on every restart. Either use your account's free static domain
 (`./demo.sh tunnel alice --url you.ngrok-free.app`) or update the URL in the app (Settings → Wallet URL, or
@@ -37,7 +47,7 @@ wallet computer, disconnect).
 ```sh
 cd mobile
 npm ci
-npx expo start            # a = Android device/emulator, scan QR with Expo Go; w = web
+npx expo start --offline --port 8085   # scan the QR with Expo Go; w = web
 npx tsc --noEmit          # typecheck
 npx expo-doctor
 ```
