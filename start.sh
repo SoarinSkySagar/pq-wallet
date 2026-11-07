@@ -3,7 +3,7 @@
 #
 #   ./start.sh                      chain + alt mempool + wallets + explorer + ngrok tunnels + phone app server
 #   ./start.sh --local              the same without ngrok and the phone app (laptop only)
-#   NGROK_DOMAIN=you.ngrok-free.app ./start.sh   give the explorer your fixed ngrok domain (a link that never changes)
+#   The explorer gets the fixed ngrok domain below (NGROK_DOMAIN=other.ngrok-free.dev ./start.sh to change it)
 #
 # Stop: ./demo.sh stop  (add --chain to pause the network too). Status: ./demo.sh status.
 set -euo pipefail
@@ -11,6 +11,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 LOCAL=.devnet/local
 METRO_PORT="${METRO_PORT:-8085}"
+NGROK_DOMAIN="${NGROK_DOMAIN-outrageous-syringeal-mathias.ngrok-free.dev}"   # fixed explorer link; NGROK_DOMAIN= for a random one
 public=1
 [ "${1:-}" = "--local" ] && public=0
 
