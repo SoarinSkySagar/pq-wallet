@@ -414,7 +414,7 @@ cmd_status() {
   else echo "mempool:  down"; fi
   infra/wallets.sh status | sed 's/^/wallet:   /'
   if explorer_running; then echo "explorer: http://127.0.0.1:$EXPLORER_PORT"; else echo "explorer: stopped"; fi
-  if tunnel_running; then tunnel_urls | sed 's/^/tunnel:   127.0.0.1:/; s/ / -> /'; else echo "tunnel:   off (./demo.sh tunnel)"; fi
+  if tunnel_running; then tunnel_urls | awk '{print "tunnel:   127.0.0.1:" $1 " -> " $2}'; else echo "tunnel:   off (./demo.sh tunnel)"; fi
 }
 
 cmd_stop() {
