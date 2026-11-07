@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Everything the PQ-Vault demo needs, in one command (devnet only, never real funds):
+# Everything the Leafguard demo needs, in one command (devnet only, never real funds):
 #
 #   ./demo.sh                 same as ./demo.sh up
 #   ./demo.sh up [--fresh] [--no-lan] [--wallets "alice bob carol"]
@@ -15,7 +15,7 @@
 #   1. brings up the local EIP-8141 network: reuses a running one, resumes stopped containers after a Docker
 #      restart (same chain, contracts and wallets), or builds a fresh one with infra/local-net.sh up (~10 min;
 #      also with --fresh, which archives the old local state)
-#   2. makes sure the ERC-8421 [BUDGET-010] alt-mempool sidecar runs (the stock one rejects PQ-Vault)
+#   2. makes sure the ERC-8421 [BUDGET-010] alt-mempool sidecar runs (the stock one rejects Leafguard)
 #   3. starts the personal wallets (infra/wallets.sh), by default with phone access (HTTPS + pairing code)
 #   4. creates each wallet's account if it has none, and tops up wallets below 0.1 ETH from the devnet faucet
 #   5. starts the block explorer (pqv/explorer.py) and prints every URL and pairing code
@@ -112,7 +112,7 @@ ensure_chain() {
     rpc="$(json_get "$LOCAL/network.json" ethrex)"
   fi
   [ -n "$(json_get "$LOCAL/deployment.json" factory)" ] \
-    || die "the network has no PQ-Vault contracts (.devnet/local/deployment.json); run ./demo.sh up --fresh"
+    || die "the network has no Leafguard contracts (.devnet/local/deployment.json); run ./demo.sh up --fresh"
 
   # blocks must be advancing (a resumed beacon node takes a moment) and past the frame-tx fork
   local b0 b1 i
@@ -148,7 +148,7 @@ ensure_sidecar() {
   image="$(docker inspect pqvault-sidecar --format '{{.Config.Image}}' 2>/dev/null || echo unknown)"
   case "$image" in
     *budget-010*) ok "alt mempool: $url ($image)" ;;
-    *) warn "alt mempool runs $image: the stock image rejects PQ-Vault (100k validation cap)."
+    *) warn "alt mempool runs $image: the stock image rejects Leafguard (100k validation cap)."
        warn "switch with: infra/local-net.sh sidecar budget010" ;;
   esac
 }
@@ -234,7 +234,7 @@ ensure_explorer() {
 summary() {
   local name port lan bal
   echo
-  printf '\033[1mPQ-Vault demo is ready\033[0m  (chain %s, block %s)\n\n' "$(cast chain-id --rpc-url "$RPC")" "$(cast block-number --rpc-url "$RPC")"
+  printf '\033[1mLeafguard demo is ready\033[0m  (chain %s, block %s)\n\n' "$(cast chain-id --rpc-url "$RPC")" "$(cast block-number --rpc-url "$RPC")"
   printf '  %-8s %-24s %-32s %-16s %s\n' wallet computer phone "pairing code" balance
   for name in "$@"; do
     port="$(wallet_port "$name")"
@@ -339,7 +339,7 @@ cmd_tunnel() {
     echo; echo "explorer  $(tunnel_url_for "$EXPLORER_PORT" https)"
   fi
   echo
-  echo "  In the PQ Wallet app: Scan QR code (or type the URL and the code). ./demo.sh stop also stops the tunnel."
+  echo "  In the Leafguard app: Scan QR code (or type the URL and the code). ./demo.sh stop also stops the tunnel."
   echo "  The wallets still only need the pairing code: anyone with the URL alone gets 'not paired'."
 }
 
@@ -419,6 +419,7 @@ cmd_status() {
 
 cmd_stop() {
   stop_tunnel
+  if pgrep -f '[e]xpo start --offline' >/dev/null; then pkill -f '[e]xpo start --offline'; echo "app dev server: stopped"; fi
   infra/wallets.sh stop || true
   if explorer_running; then kill "$(cat "$LOCAL/explorer.pid")"; echo "explorer: stopped"; fi
   rm -f "$LOCAL/explorer.pid"
