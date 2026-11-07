@@ -18,7 +18,7 @@ json.dump({"entryPoints": [ep], "canonicalEntryPoint": ep, "standardMempoolId": 
            "relayers": [open(keyfile).read().strip()],
            "rpcEndpoint": f"http://host.docker.internal:{port}",
            "stakingRegistryAddress": staking, "minStake": 10**16, "minUnstakeDelay": 0,
-           "minSignerBalance": 0, "bundleInterval": 3000, "maxSubmitAttempts": 40}, open(cfg, "w"), indent=1)
+           "minSignerBalance": 0, "bundleInterval": 1000, "maxSubmitAttempts": 120}, open(cfg, "w"), indent=1)
 PY
 chmod 600 "$CFG"
 docker rm -f pqvault-sidecar >/dev/null 2>&1 || true

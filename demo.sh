@@ -213,6 +213,20 @@ ensure_wallets() {
   done
 }
 
+archive_stale_vaults() {   # shared vaults deployed on an earlier chain do not exist on this one: hide them
+  local d a n
+  for d in "$LOCAL"/vaults/*/; do
+    [ -f "$d/vault.json" ] || continue
+    a="$(json_get "$d/vault.json" address)"
+    [ -n "$a" ] || continue
+    if [ "$(cast codesize "$a" --rpc-url "$RPC" 2>/dev/null || echo 1)" = 0 ]; then
+      n="$(json_get "$d/vault.json" name)"
+      mkdir -p "$LOCAL/vaults-archive"; mv "$d" "$LOCAL/vaults-archive/"
+      warn "vault \"$n\" ($a) is from an earlier chain: archived to $LOCAL/vaults-archive/"
+    fi
+  done
+}
+
 # ----------------------------------------------------------------------------- 3. explorer
 explorer_running() { [ -f "$LOCAL/explorer.pid" ] && kill -0 "$(cat "$LOCAL/explorer.pid")" 2>/dev/null; }
 
@@ -401,6 +415,7 @@ cmd_up() {
   preflight
   ensure_chain "$fresh"
   ensure_sidecar
+  archive_stale_vaults
   ensure_wallets "$lan" "$@"
   ensure_explorer
   summary "$@"

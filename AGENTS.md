@@ -171,9 +171,14 @@ Without the guardian secrets in `.devnet/public/` that vault cannot be operated;
   as a phone and requires the pairing code (one shared `GATE`). `adb reverse` keeps Host localhost, so it stays local.
   The wallet finds its tunnel via ngrok's agent API (127.0.0.1:4040-4042) for `/api/pair`. Never add CORS headers to
   the wallet server: the missing CORS is what keeps other web pages away from a local wallet.
-- **Payment stuck in "Sending"** (sidecar status `Submitted`, ethrex txpool empty, resubmit says "Frame transaction
-  already known"): the sidecar stopped relaying (seen 2026-11-07 after ~6 h up; its log had gone quiet). Fix:
-  `docker restart pqvault-sidecar`, then *Send now* (vault) or send again; the signed tx is reused, no new leaves.
+- **Payment stuck in "Sending" / "waiting for a block"** (sidecar status `Submitted`, ethrex builds the payload with
+  `txs=1` but the block has 0 txs): ethrex builds each slot's payload twice (slot start, then ~1.75 s later on a second
+  forkchoiceUpdated) and serves the *first* build; a privileged relay is only picked up by the next build. With the
+  old 3 s bundleInterval the sidecar relayed every 6 s at a fixed phase, and a restart could lock that phase just after
+  the first build, so every relay missed. `bundleInterval: 1000` (relays at three phases per slot) fixes it
+  (`infra/sidecar-local.sh`, `.devnet/local/sidecar-config.json`). The sidecar keeps its pool across restarts, so a
+  resubmit says "already known"; it is still relayed. Diagnose with
+  `cast rpc admin_setLogLevel '"info,ethrex_blockchain=debug"'` and the `EIP-8037 block finalize ... txs=` lines.
 - **Metro port**: 8081 belongs to the Kurtosis engine container, so the app's dev server runs on 8085 (`METRO_PORT`).
   `expo start --tunnel` needs an Expo login (it failed with a NetworkError to api.expo.dev); `./demo.sh app --ngrok`
   instead sets `EXPO_PACKAGER_PROXY_URL` to the user's ngrok http URL (Expo Go link `exp://<host>:80`) with `--offline`.
